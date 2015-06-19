@@ -16,19 +16,24 @@
 
     <ul class="nav nav-tabs">
       <li role="presentation" class="active"><a href={{ url_for('home') }}>Home</a></li>
+      {% if g.user.is_authenticated() %}
+        <li role="presentation"><a href="{{ url_for('logout') }}">Logout</a>
+      {% endif %}
     </ul>
   </head>
 
   <body>
+
     {% with messages = get_flashed_messages() %}
       {% if messages %}
         <ul>
         {% for message in messages %}
-            <li>{{ message }} </li>
+            <li>{{ message }}</li>
         {% endfor %}
         </ul>
       {% endif %}
     {% endwith %}
+
     {% block content %}{% endblock %}
   </body>
 
