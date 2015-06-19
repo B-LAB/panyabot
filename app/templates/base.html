@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet" media="screen">
+    <script src="http://code.jquery.com/jquery-latest.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="panyabot icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <!--- Icon made by Freepik from http://www.flaticon.com/free-icon/laboratory-mouse_71284 -->
+    
+    {% if title %}
+    <title>{{ title }} - PanyaBot</title>
+    {% else %}
+    <title>PanyaBot</title>
+    {% endif %}
+
+    <ul class="nav nav-tabs">
+      <li role="presentation" class="active"><a href={{ url_for('home') }}>Home</a></li>
+    </ul>
+  </head>
+
+  <body>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+        {% for message in messages %}
+            <li>{{ message }} </li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </body>
+
+</html>
