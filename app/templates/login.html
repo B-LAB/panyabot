@@ -7,8 +7,8 @@
       {{ form.hidden_tag() }}
       <p>
           Please enter your Nickname:<br>
-          {{ form.nameid(size=80) }}<br>
-          {% for error in form.nameid.errors %}
+          {{ form.nickname(size=80) }}<br>
+          {% for error in form.nickname.errors %}
             <span style="color: red;">[{{ error }}]</span>
           {% endfor %}<br>
 
@@ -19,6 +19,8 @@
           {% endfor %}<br>
       </p>
       <p>{{ form.remember_me }} Remember Me</p>
-      <p><input type="submit" value="Sign In"></p>
+      <p><input type="submit" value="Sign In">
+        <a href={{ url_for('register') }}><span>
+          <input type="button" value="Sign Up"></span></a></p>
   </form>
 {% endblock %}
