@@ -1,3 +1,7 @@
+import os
+
+basedir = os.path.dirname(__file__)
+
 WTF_CSRF_ENABLED = True
 DEBUG = False
 

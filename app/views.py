@@ -16,10 +16,8 @@ def user_loader(user_id):
 def register():
 	form = RegistrationForm()
 	if form.validate_on_submit():
-		print "Registering User.."
+		print "Registering user to " + str(db)
 		pwd_hash=bcrypt.generate_password_hash(form.password.data)
-		# print ('Firstname=%s, Lastname=%s, Nickname=%s, Robot Name=%s, Robot MAC=%s, Robot Owner=%s' % (form.firstname.data
-		# 	,form.lastname.data, form.nickname.data, form.robot_name.data, form.robot_mac.data, form.nickname.data))
 		user = User(firstname=form.firstname.data, lastname=form.lastname.data, nickname=form.nickname.data, password=pwd_hash)
 		db.session.add(user)
 		robot = Robot(alias=form.robot_name.data, macid=form.robot_mac.data, owner=User.query.filter_by(nickname=(form.nickname.data)).first())
@@ -33,11 +31,10 @@ def register():
 def login():
 	if g.user is not None and g.user.is_authenticated():
 		return redirect(url_for('home'))	
-	print db
 	form = LoginForm()
 	if form.validate_on_submit():
+		print 'Logging in to ' + str(db)
 		user = User.query.filter_by(nickname=form.nickname.data).first()
-		print user
 		if user:
 			if bcrypt.check_password_hash(user.password, form.password.data):
 				user.authenticated = True
@@ -56,11 +53,13 @@ def login():
 @app.route('/logout')
 def logout():
 	"""Logout the current user"""
+	print 'Logging out of ' + str(db)
 	user=current_user
 	user.authenticated=False
 	db.session.add(user)
 	db.session.commit()
 	logout_user()
+	flash('You have been logged out')
 	return redirect(url_for('login'))
 
 @app.route('/')
