@@ -3,6 +3,7 @@
 *.pyo
 
 # Keep out sensitive data and development test files
+flask/
 bin/
 db_repository/
 include/

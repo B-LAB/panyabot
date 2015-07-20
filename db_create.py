@@ -1,5 +1,4 @@
-#!/usr/bin/env python2.7
-
+#!flask/bin/python
 from migrate.versioning import api
 from app import db, app
 import os.path

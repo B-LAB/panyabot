@@ -1,5 +1,4 @@
-#!/usr/bin/env python2.7
-
+#!flask/bin/python
 from app import app
 
 if __name__ == '__main__':

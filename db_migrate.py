@@ -1,5 +1,4 @@
-#!/usr/bin/env python2.7
-
+#!flask/bin/python
 import imp
 from migrate.versioning import api
 from app import db, app

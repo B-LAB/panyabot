@@ -26,7 +26,7 @@ class RegistrationForm(Form):
 
 		errorcheck = False
 		onepass = False
-		while not checking and not errorcheck:
+		while not onepass and not errorcheck:
 			user = User.query.filter_by(nickname=self.nickname.data).first()
 			if user != None:
 				self.nickname.errors.append('This nickname is already in use. Please choose another one.')
