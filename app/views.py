@@ -8,6 +8,15 @@ from .models import User, Robot
 def before_request():
 	g.user = current_user
 
+@app.errorhandler(404)
+def not_found_error(error):
+	return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+	db.session.rollback()
+	return render_template('500.html'), 500
+
 @login_manager.user_loader
 def user_loader(user_id):
 	return User.query.get(int(user_id))
@@ -54,8 +63,8 @@ def login():
 def logout():
 	"""Logout the current user"""
 	print 'Logging out of ' + str(db)
-	user=current_user
-	user.authenticated=False
+	user = current_user
+	user.authenticated = False
 	db.session.add(user)
 	db.session.commit()
 	logout_user()
@@ -68,12 +77,3 @@ def logout():
 def home():
 	user = g.user
 	return render_template('home.html', title='Home', user=user)
-
-@app.errorhandler(404)
-def not_found_error(error):
-	return render_template('404.html'), 404
-
-@app.errorhandler(500)
-def internal_error(error):
-	db.session.rollback()
-	return render_template('500.html'), 500

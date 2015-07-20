@@ -24,25 +24,26 @@ class RegistrationForm(Form):
 		if not Form.validate(self):
 			return False
 
-		result = False
-		checking = True
-		while checking and not result:
+		errorcheck = False
+		onepass = False
+		while not checking and not errorcheck:
 			user = User.query.filter_by(nickname=self.nickname.data).first()
 			if user != None:
 				self.nickname.errors.append('This nickname is already in use. Please choose another one.')
-				result = True
+				errorcheck = True
 
 			robot = Robot.query.filter_by(alias=self.robot_name.data).first()
 			if robot != None:
 				self.robot_name.errors.append('This robot name is already in use. Please choose another one.')
-				result = True
+				errorcheck = True
 
 			mac = Robot.query.filter_by(macid=self.robot_mac.data).first()
 			if mac != None:
 				self.robot_mac.errors.append('This robot already has an owner.')
-				result = True
-			checking = False
-		if result:
+				errorcheck = True
+			onepass = True
+		
+		if errorcheck:
 			return False
 
 		return True
