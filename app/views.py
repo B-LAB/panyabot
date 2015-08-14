@@ -77,3 +77,9 @@ def logout():
 def home():
 	user = g.user
 	return render_template('home.html', title='Home', user=user)
+
+@app.route('/blockly')
+@login_required
+def blockly():
+	user = g.user
+	return render_template('blockly.html', title='Blockly', user=user)
