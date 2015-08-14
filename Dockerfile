@@ -2,14 +2,18 @@
 # Dockerfile to build panyabot container images
 # Based on yocto
 ################################################
+#Set the base image to raspbian
+FROM resin/rpi-raspbian
+
 # File Author / Maintainer
 MAINTAINER Wachira Ndaiga
 
 # Update the repository sources list
-RUN opkg update
+RUN sudo apt-get update
+RUN sudo apt-get upgrade
 
 # Install python and python-dev
-RUN opkg install -y python python-dev python-pip
+RUN sudo apt-get install -y python python-dev python-pip
 
 # Create running environment
 RUN pip install virtualenv
