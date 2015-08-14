@@ -13,7 +13,7 @@ RUN sudo apt-get update
 RUN sudo apt-get upgrade
 
 # Install python and python-dev
-RUN sudo apt-get install -y python python-dev python-pip
+RUN sudo apt-get install -y python python-dev python-pip git
 
 RUN git clone https://github.com/waschguy/panyabot
 
