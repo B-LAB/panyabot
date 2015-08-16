@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<table>
+	<tr>
+		<td id="blocklyArea"></td>
+	</tr>
+</table>
+
+<div id="blocklyDiv" style="position: absolute"></div>
+
+  <xml id="toolbox" style="display: none">
+    <block type="controls_if"></block>
+    <block type="logic_compare"></block>
+    <block type="controls_repeat_ext"></block>
+    <block type="math_number"></block>
+    <block type="math_arithmetic"></block>
+    <block type="text"></block>
+    <block type="text_print"></block>
+  </xml>
+{% endblock %}

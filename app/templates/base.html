@@ -15,11 +15,44 @@
     {% endif %}
 
     <ul class="nav nav-tabs">
-      <li role="presentation" class="active"><a href={{ url_for('home') }}>Home</a></li>
       {% if g.user.is_authenticated() %}
-        <li role="presentation"><a href="{{ url_for('logout') }}">Logout</a>
+        <li role="presentation" class="active"><a href={{ url_for('home') }}>Home</a></li>
+        <li role="presentation"><a href={{ url_for('blockly') }}>Blockly</a><li>
+        <li role="presentation"><a href={{ url_for('logout') }}>Logout</a>
       {% endif %}
     </ul>
+
+    {% if title == "Blockly" %}
+      <script src="/static/js/blockly_compressed.js"></script>
+      <script src="/static/js/blocks_compressed.js"></script>
+      <script src="/static/js/en.js"></script>
+
+      <style>
+        html, body {
+          height: 100%;
+          margin: 0;
+        }
+        body {
+          background-color: #fff;
+          font-family: sans-serif;
+          overflow: hidden;
+        }
+        h1 {
+          font-weight: normal;
+          font-size: 140%;
+        }
+        table {
+          height: 100%;
+          width: 100%;
+        }
+        #blocklyArea {
+        height: 99%;
+        background: #fc9;
+        text-align: center;
+        }
+      </style>
+    {% endif %}
+
   </head>
 
   <body>
@@ -35,6 +68,32 @@
     {% endwith %}
 
     {% block content %}{% endblock %}
+    
+    {% if title == "Blockly" %}
+      <script>
+        var blocklyArea = document.getElementById('blocklyArea');
+        var blocklyDiv = document.getElementById('blocklyDiv');
+        var workspace = Blockly.inject(blocklyDiv,
+            {toolbox: document.getElementById('toolbox')});
+        var onresize = function(e) {
+          // Compute the absolute coordinates and dimensions of blocklyArea.
+          var element = blocklyArea;
+          var x = 0;
+          var y = 0;
+          do {
+            x += element.offsetLeft;
+            y += element.offsetTop;
+            element = element.offsetParent;
+          } while (element);
+          // Position blocklyDiv over blocklyArea.
+          blocklyDiv.style.left = x + 'px';
+          blocklyDiv.style.top = y + 'px';
+          blocklyDiv.style.width = blocklyArea.offsetWidth + 'px';
+          blocklyDiv.style.height = blocklyArea.offsetHeight + 'px';
+        };
+        window.addEventListener('resize', onresize, false);
+        onresize();
+      </script>
+    {% endif %}
   </body>
-
 </html>
