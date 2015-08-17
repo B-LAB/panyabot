@@ -16,7 +16,7 @@
 
     <ul class="nav nav-tabs">
       {% if g.user.is_authenticated() %}
-        <li role="presentation" class="active"><a href={{ url_for('home') }}>Home</a></li>
+        <li role="presentation"><a href={{ url_for('home') }}>Home</a></li>
         <li role="presentation"><a href={{ url_for('blockly') }}>Blockly</a><li>
         <li role="presentation"><a href={{ url_for('logout') }}>Logout</a>
       {% endif %}
