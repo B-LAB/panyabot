@@ -1,12 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
+
+<p>
+  <button onclick="showCode()">Run</button>
+</p>
+
 <table>
 	<tr>
 		<td id="blocklyArea"></td>
 	</tr>
 </table>
 
-<div id="blocklyDiv" style="position: absolute"></div>
+<div id="blocklyDiv" style="position: absolute;"></div>
 
 <xml id="toolbox" style="display: none">
   <category name="Loops">
@@ -20,9 +25,23 @@
     <block type="math_number"></block>
     <block type="math_arithmetic"></block>
   </category>
-  <category name="Words">
-    <block type="text"></block>
-    <block type="text_print"></block>
+  <category name="Print">
+      <block type="text"></block>
+      <block type="text_print"></block>
+  </category>
+  <sep></sep>
+  <category name="Motors">
+  </category>
+  <category name="LEDs">
+  </category>
+  <category name="Speakers">
+  </category>
+  <category name="Sensors">
+  </category>
+  <category name="Drivers">
+  </category>
+  <sep></sep>
+  <category name="Examples">
   </category>
 </xml>
 {% endblock %}
