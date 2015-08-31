@@ -3,7 +3,7 @@ import os
 import unittest
 import datetime
 
-from config import basedir
+from config import datadir
 from app import app, db, bcrypt
 from app.models import User, Robot
 
@@ -12,7 +12,7 @@ class TestCase(unittest.TestCase):
 		print 'Setting up database testing environment',
 		app.config['TESTING'] = True
 		app.config['WTF_CSRF_ENABLED'] = False
-		app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'test.db')
+		app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(datadir, 'test.db')
 		self.app = app.test_client()
 		db.create_all()
 

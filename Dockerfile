@@ -18,6 +18,7 @@ RUN sudo apt-get install -y python python-dev python-pip
 COPY . /panyabot
 WORKDIR /panyabot
 RUN cd /panyabot
+RUN mkdir data
 
 # Create running environment
 RUN pip install virtualenv
