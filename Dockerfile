@@ -11,8 +11,8 @@ MAINTAINER Wachira Ndaiga
 # Update the repository sources list
 RUN sudo apt-get update
 
-# Install python and python-dev
-RUN sudo apt-get install -y python python-dev python-pip
+# Install python, python-dev and usbutils
+RUN sudo apt-get install -y python python-dev python-pip usbutils
 
 # Set application directory tree
 COPY . /panyabot
