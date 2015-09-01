@@ -2,52 +2,96 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h1>Sign Up</h1>
-  <form action="" method="post" name="registration">
-      {{ form.hidden_tag() }}
-      <p>
-          Please enter your Firstname:<br>
-          {{ form.firstname(size=80) }}<br>
-          {% for error in form.firstname.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-          {% endfor %}<br>
+  <div class="well">
+    <h3>Register</h3>
+    <form class="form-horizontal" action="" method="post" name="registration">
+        {{ form.hidden_tag() }}
 
-          Please enter your Lastname:<br>
-          {{ form.lastname(size=80) }}<br>
-          {% for error in form.lastname.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-          {% endfor %}<br>
+        <div class="control-group">
+          <label class="control-label" for "firstname">Firstname</label>
+          <div class="controls">
+            {{ form.firstname(size=30) }}
+            {% for error in form.firstname.errors %}
+              <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
+            {% endfor %}
+          </div>
+        </div>
 
-          Please enter your Nickname:<br>
-          {{ form.nickname(size=80) }}<br>
-          {% for error in form.nickname.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-          {% endfor %}<br>
+        <div class="control-group">
+          <label class="control-label" for "lastname">Lastname</label>
+          <div class="controls">
+            {{ form.lastname(size=30) }}
+            {% for error in form.lastname.errors %}
+              <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
+            {% endfor %}
+          </div>
+        </div>
 
-          Please enter your Robots' MAC Address:<br>
-          {{ form.robot_mac(size=80) }}<br>
-          {% for error in form.robot_mac.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-          {% endfor %}<br>
+        <div class="control-group">
+          <label class="control-label" for "username">Username</label>
+          <div class="controls">
+            {{ form.nickname(size=30) }}
+            {% for error in form.nickname.errors %}
+              <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
+            {% endfor %}
+          </div>
+        </div>
 
-          Please enter your Robots' Name:<br>
-          {{ form.robot_name(size=80) }}<br>
-          {% for error in form.robot_name.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-          {% endfor %}<br>
+        <div class="control-group">
+          <label class="control-label" for "password">Password</label>
+          <div class="controls">
+            {{ form.password(size=30) }}
+            {% for error in form.password.errors %}
+              <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
+            {% endfor %}
+          </div>
+        </div>
 
-          Please enter your Password:<br>
-          {{ form.password(size=80) }}<br>
-          {% for error in form.password.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-          {% endfor %}<br>
+        <div class="control-group">
+          <label class="control-label" for "confirm">Confirm Password</label>
+          <div class="controls">
+            {{ form.confirm(size=30) }}
+            {% for error in form.confirm.errors %}
+              <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
+            {% endfor %}
+          </div>
+        </div>
 
-          Please confirm your Password:<br>
-          {{ form.confirm(size=80) }}<br>
-          {% for error in form.confirm.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-          {% endfor %}<br>
-      </p>
-      <p><input type="submit" value="Sign Up"></p>
-  </form>
+        <div class="control-group">
+          <label class="control-label" for "robot_name">Robots' Name</label>
+          <div class="controls">
+            {{ form.robot_name(size=30) }}
+            {% for error in form.robot_name.errors %}
+              <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for "robot_mac">Robots' MAC</label>
+          <div class="controls">
+            {{ form.robot_mac(size=30) }}
+            {% for error in form.robot_mac.errors %}
+              <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
+            {% endfor %}
+          </div>
+        </div><br>
+
+        <div class="control-group">
+          <div class="controls">
+            <a href={{ url_for('blockly') }}>
+              <span>
+                <input class="btn btn-primary" type="button" value="Bluetooth Search">
+              </span>
+            </a>
+          </div>
+      </div><br>
+
+        <div class="control-group">
+          <div class="controls">
+            <input class="btn btn-primary" type="submit" value="Sign Up">
+          </div>
+      </div>
+    </form>
+  </div>
 {% endblock %}

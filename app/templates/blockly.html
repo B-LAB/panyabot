@@ -1,50 +1,53 @@
 {% extends "base.html" %}
 {% block content %}
 
-<p>
-  <button type="button" class="btn bt-default btn-lg" onclick="showCode()">
-    <span class="glyphicon glyphicon-play-circle"></span> Run</button>
-    <button type="button" class="btn bt-default btn-lg" onclick="uploadCode()">
-    <span class="glyphicon glyphicon-upload"></span> Upload</button>
-</p>
+  <div class="btn btn-info btn-lg" onclick="showCode()"><i class="glyphicon glyphicon-play-circle"></i>Run</a></div>
+  <div class="btn btn-success btn-lg" onclick="uploadCode()"><i class="glyphicon glyphicon-upload"></i>Upload</a></div>
 
-<table>
-	<tr>
-		<td id="blocklyArea"></td>
-	</tr>
-</table>
+  <!-- <p>
+    <button type="button" class="btn bt-default btn-lg" onclick="showCode()">
+      <span class="glyphicon glyphicon-play-circle"></span> Run</button>
+      <button type="button" class="btn bt-default btn-lg" onclick="uploadCode()">
+      <span class="glyphicon glyphicon-upload"></span> Upload</button>
+  </p> -->
 
-<div id="blocklyDiv" style="position: absolute;"></div>
+  <table>
+  	<tr>
+  		<td id="blocklyArea"></td>
+  	</tr>
+  </table>
 
-<xml id="toolbox" style="display: none">
-  <category name="Loops">
-    <block type="controls_if"></block>
-    <block type="controls_repeat_ext"></block>
-  </category>
-  <category name="Compare">
-    <block type="logic_compare"></block>
-  </category>
-  <category name="Math">
-    <block type="math_number"></block>
-    <block type="math_arithmetic"></block>
-  </category>
-  <category name="Print">
-      <block type="text"></block>
-      <block type="text_print"></block>
-  </category>
-  <sep></sep>
-  <category name="Motors">
-  </category>
-  <category name="LEDs">
-  </category>
-  <category name="Speakers">
-  </category>
-  <category name="Sensors">
-  </category>
-  <category name="Drivers">
-  </category>
-  <sep></sep>
-  <category name="Examples">
-  </category>
-</xml>
+  <div id="blocklyDiv" style="position: absolute;"></div>
+
+  <xml id="toolbox" style="display: none">
+    <category name="Loops">
+      <block type="controls_if"></block>
+      <block type="controls_repeat_ext"></block>
+    </category>
+    <category name="Compare">
+      <block type="logic_compare"></block>
+    </category>
+    <category name="Math">
+      <block type="math_number"></block>
+      <block type="math_arithmetic"></block>
+    </category>
+    <category name="Print">
+        <block type="text"></block>
+        <block type="text_print"></block>
+    </category>
+    <sep></sep>
+    <category name="Motors">
+    </category>
+    <category name="LEDs">
+    </category>
+    <category name="Speakers">
+    </category>
+    <category name="Sensors">
+    </category>
+    <category name="Drivers">
+    </category>
+    <sep></sep>
+    <category name="Examples">
+    </category>
+  </xml>
 {% endblock %}
