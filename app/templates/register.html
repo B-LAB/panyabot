@@ -1,8 +1,7 @@
 <!-- extend from base layout -->
 {% extends "base.html" %}
-
 {% block content %}
-{% include 'flash.html' %}
+  {% include 'flash.html' %}
   <div class="well">
     <h3>Register</h3>
     <form class="form-horizontal" action="" method="post" name="registration">
@@ -11,7 +10,7 @@
         <div class="control-group">
           <label class="control-label" for "firstname">Firstname</label>
           <div class="controls">
-            {{ form.firstname(size=30) }}
+            {{ form.firstname(size=30, class="form-control") }}
             {% for error in form.firstname.errors %}
               <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
             {% endfor %}
@@ -21,7 +20,7 @@
         <div class="control-group">
           <label class="control-label" for "lastname">Lastname</label>
           <div class="controls">
-            {{ form.lastname(size=30) }}
+            {{ form.lastname(size=30, class="form-control") }}
             {% for error in form.lastname.errors %}
               <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
             {% endfor %}
@@ -31,7 +30,7 @@
         <div class="control-group">
           <label class="control-label" for "username">Username</label>
           <div class="controls">
-            {{ form.nickname(size=30) }}
+            {{ form.nickname(size=30, class="form-control") }}
             {% for error in form.nickname.errors %}
               <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
             {% endfor %}
@@ -41,7 +40,7 @@
         <div class="control-group">
           <label class="control-label" for "password">Password</label>
           <div class="controls">
-            {{ form.password(size=30) }}
+            {{ form.password(size=30, class="form-control") }}
             {% for error in form.password.errors %}
               <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
             {% endfor %}
@@ -51,7 +50,7 @@
         <div class="control-group">
           <label class="control-label" for "confirm">Confirm Password</label>
           <div class="controls">
-            {{ form.confirm(size=30) }}
+            {{ form.confirm(size=30, class="form-control") }}
             {% for error in form.confirm.errors %}
               <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
             {% endfor %}
@@ -61,32 +60,26 @@
         <div class="control-group">
           <label class="control-label" for "robot_name">Robots' Name</label>
           <div class="controls">
-            {{ form.robot_name(size=30) }}
+            {{ form.robot_name(size=30, class="form-control") }}
             {% for error in form.robot_name.errors %}
               <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
             {% endfor %}
           </div>
         </div>
 
-        <div class="control-group">
-          <label class="control-label" for "robot_mac">Robots' MAC</label>
-          <div class="controls">
-            {{ form.robot_mac(size=30) }}
-            {% for error in form.robot_mac.errors %}
-              <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
-            {% endfor %}
-          </div>
-        </div><br>
-
-        <div class="control-group">
-          <div class="controls">
-            <a href="#">
-              <span>
-                <input class="btn btn-primary" type="button" value="Bluetooth Search">
-              </span>
-            </a>
-          </div>
-      </div><br>
+        <label class="control-label" for "robot_mac">Robots' MAC</label>
+          <div class="input-group">
+            <span class="input-group-addon btn btn-primary" type="button" onclick="bluesearch();return false;">
+            <i style="display: show" id="search" class="glyphicon glyphicon-search"></i>
+            <img id="loading" style="display: none" height="20" width="20" src="/static/loading.gif"> Search </span>
+            <div id="dvsel" style="display: none">
+              <select class="form-control selectpicker" id="robotsel"></select><br>
+            </div>
+              {{ form.robot_mac(id="robotmac", class="form-control") }}
+              {% for error in form.robot_mac.errors %}
+                <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
+              {% endfor %}
+          </div><br>
 
         <div class="control-group">
           <div class="controls">
@@ -95,4 +88,44 @@
       </div>
     </form>
   </div>
+  <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.7.3/js/bootstrap-select.js"></script>
+  <script>
+    $('.selectpicker').selectpicker();
+  </script>
+  <script>
+  function bluesearch() {
+    var option_list = [["","---Select One---"]];
+    $("#search").hide();
+    $("#loading").show();
+    $.ajax({
+      type: "POST",
+      url: '/bluesearch',
+      dataType:'json',
+      success: function(data) {
+        $("#search").show();
+        $("#loading").hide();
+        var passdata = JSON.parse(data.devices)
+        $.each(passdata, function(i, item) {
+          var dev_item=[[item.mac,item.name]];
+          option_list = option_list.concat(dev_item);
+          dev_item=[];
+        });
+        $("#robotsel").empty();
+        alert(option_list.length-1+" devices found")
+        for (var i = 0; i < option_list.length; i++) {
+          $("#robotsel").append(
+            $("<option></option>").attr(
+              "value", option_list[i][0]).text(option_list[i][1])
+            );
+          $("#robotmac").hide();
+          $('#dvsel').show();
+          $('#robotsel').selectpicker('refresh');
+        }
+      },
+      error: function(){
+        alert("Error");
+      }
+    });
+  }
+  </script>
 {% endblock %}
