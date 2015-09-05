@@ -11,7 +11,7 @@
         <div class="control-group">
           <label class="control-label" for "username">Username</label>
           <div class="controls">
-            {{ form.nickname(size=30) }}
+            {{ form.nickname(size=30, class="form-control")}}
             {% for error in form.nickname.errors %}
               <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
             {% endfor %}
@@ -21,7 +21,7 @@
         <div class="control-group">
           <label class="control-label" for "password">Password</label>
           <div class="controls">
-            {{ form.password(size=30) }}
+            {{ form.password(size=30, class="form-control") }}
             {% for error in form.password.errors %}
               <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
             {% endfor %}
