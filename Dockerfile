@@ -27,6 +27,7 @@ RUN cd /panyabot
 RUN pip install virtualenv
 RUN virtualenv flask --system-site-packages
 RUN flask/bin/pip install -r requirements.txt
+RUN chmod 755 run.sh
 RUN flask/bin/python db_create.py
 RUN flask/bin/python db_migrate.py
 RUN flask/bin/python tests.py
@@ -35,4 +36,4 @@ RUN flask/bin/python tests.py
 EXPOSE 5000
 
 # Start web app
-CMD flask/bin/python run.py
+ CMD ["/bin/bash", "run.sh"]
