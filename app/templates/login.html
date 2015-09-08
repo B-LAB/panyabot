@@ -2,25 +2,55 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h1>Sign In</h1>
-  <form action="" method="post" name="login">
-      {{ form.hidden_tag() }}
-      <p>
-          Please enter your Nickname:<br>
-          {{ form.nickname(size=80) }}<br>
-          {% for error in form.nickname.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-          {% endfor %}<br>
+{% include 'flash.html' %}
+  <div class="well" >
+    <h3>Sign In</h3>
+    <form class="form-horizontal" action="" method="post" name="login">
+        {{ form.hidden_tag() }}
+        
+        <div class="control-group">
+          <label class="control-label" for "username">Username</label>
+          <div class="controls">
+            {{ form.nickname(size=30, class="form-control")}}
+            {% for error in form.nickname.errors %}
+              <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
+            {% endfor %}
+          </div>
+        </div>
 
-          Please enter your Password:<br>
-          {{ form.password(size=80) }}<br>
-          {% for error in form.password.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-          {% endfor %}<br>
-      </p>
-      <p>{{ form.remember_me }} Remember Me</p>
-      <p><input type="submit" value="Sign In">
-        <a href={{ url_for('register') }}><span>
-          <input type="button" value="Sign Up"></span></a></p>
-  </form>
+        <div class="control-group">
+          <label class="control-label" for "password">Password</label>
+          <div class="controls">
+            {{ form.password(size=30, class="form-control") }}
+            {% for error in form.password.errors %}
+              <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="checkbox" for="remember_me"> Remember Me </label>
+            <div class="controls">
+                {{ form.remember_me }}
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="controls">
+            <input class="btn btn-primary" type="submit" value="Sign In">
+          </div>
+      </div>
+
+      <br>
+      <div class="control-group">
+        <div class="controls">
+          <a href={{ url_for('register') }}>
+            <span>
+              <input class="btn" type="button" value="Sign Up">
+            </span>
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
 {% endblock %}

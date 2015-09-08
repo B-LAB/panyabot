@@ -8,27 +8,30 @@ FROM resin/rpi-raspbian:jessie
 # File Author / Maintainer
 MAINTAINER Wachira Ndaiga
 
-# Update the repository sources list
-RUN sudo apt-get update
-
-# Install python and python-dev
-RUN sudo apt-get install -y python python-dev python-pip
+# Update the repository sources list and install dependancies
+RUN sudo apt-get update && apt-get install -y \
+    python \
+    python-dev \
+    python-pip \
+    usbutils \
+    bluetooth \
+    bluez \
+    python-bluez
 
 # Set application directory tree
 COPY . /panyabot
+RUN mkdir data
 WORKDIR /panyabot
 RUN cd /panyabot
 
 # Create running environment
 RUN pip install virtualenv
-RUN virtualenv flask
+RUN virtualenv flask --system-site-packages
 RUN flask/bin/pip install -r requirements.txt
-RUN flask/bin/python db_create.py
-RUN flask/bin/python db_migrate.py
-RUN flask/bin/python tests.py
+RUN chmod 755 run.sh
 
 # Expose ports
 EXPOSE 5000
 
 # Start web app
-CMD flask/bin/python run.py
+ CMD ["/bin/bash", "run.sh"]

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
-<h1> Hello </h1>
+<h3> Hello, {{ user.nickname }} </h3>
+{% include 'flash.html' %}
 {% endblock %}

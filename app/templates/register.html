@@ -1,53 +1,131 @@
 <!-- extend from base layout -->
 {% extends "base.html" %}
-
 {% block content %}
-  <h1>Sign Up</h1>
-  <form action="" method="post" name="registration">
-      {{ form.hidden_tag() }}
-      <p>
-          Please enter your Firstname:<br>
-          {{ form.firstname(size=80) }}<br>
-          {% for error in form.firstname.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-          {% endfor %}<br>
+  {% include 'flash.html' %}
+  <div class="well">
+    <h3>Register</h3>
+    <form class="form-horizontal" action="" method="post" name="registration">
+        {{ form.hidden_tag() }}
 
-          Please enter your Lastname:<br>
-          {{ form.lastname(size=80) }}<br>
-          {% for error in form.lastname.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-          {% endfor %}<br>
+        <div class="control-group">
+          <label class="control-label" for "firstname">Firstname</label>
+          <div class="controls">
+            {{ form.firstname(size=30, class="form-control") }}
+            {% for error in form.firstname.errors %}
+              <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
+            {% endfor %}
+          </div>
+        </div>
 
-          Please enter your Nickname:<br>
-          {{ form.nickname(size=80) }}<br>
-          {% for error in form.nickname.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-          {% endfor %}<br>
+        <div class="control-group">
+          <label class="control-label" for "lastname">Lastname</label>
+          <div class="controls">
+            {{ form.lastname(size=30, class="form-control") }}
+            {% for error in form.lastname.errors %}
+              <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
+            {% endfor %}
+          </div>
+        </div>
 
-          Please enter your Robots' MAC Address:<br>
-          {{ form.robot_mac(size=80) }}<br>
-          {% for error in form.robot_mac.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-          {% endfor %}<br>
+        <div class="control-group">
+          <label class="control-label" for "username">Username</label>
+          <div class="controls">
+            {{ form.nickname(size=30, class="form-control") }}
+            {% for error in form.nickname.errors %}
+              <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
+            {% endfor %}
+          </div>
+        </div>
 
-          Please enter your Robots' Name:<br>
-          {{ form.robot_name(size=80) }}<br>
-          {% for error in form.robot_name.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-          {% endfor %}<br>
+        <div class="control-group">
+          <label class="control-label" for "password">Password</label>
+          <div class="controls">
+            {{ form.password(size=30, class="form-control") }}
+            {% for error in form.password.errors %}
+              <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
+            {% endfor %}
+          </div>
+        </div>
 
-          Please enter your Password:<br>
-          {{ form.password(size=80) }}<br>
-          {% for error in form.password.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-          {% endfor %}<br>
+        <div class="control-group">
+          <label class="control-label" for "confirm">Confirm Password</label>
+          <div class="controls">
+            {{ form.confirm(size=30, class="form-control") }}
+            {% for error in form.confirm.errors %}
+              <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
+            {% endfor %}
+          </div>
+        </div>
 
-          Please confirm your Password:<br>
-          {{ form.confirm(size=80) }}<br>
-          {% for error in form.confirm.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-          {% endfor %}<br>
-      </p>
-      <p><input type="submit" value="Sign Up"></p>
-  </form>
+        <div class="control-group">
+          <label class="control-label" for "robot_name">Robots' Name</label>
+          <div class="controls">
+            {{ form.robot_name(size=30, class="form-control") }}
+            {% for error in form.robot_name.errors %}
+              <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
+            {% endfor %}
+          </div>
+        </div>
+
+        <label class="control-label" for "robot_mac">Robots' MAC</label>
+          <div class="input-group">
+            <span class="input-group-addon btn btn-primary" type="button" onclick="bluesearch();return false;">
+            <i style="display: show" id="search" class="glyphicon glyphicon-search"></i>
+            <img id="loading" style="display: none" height="20" width="20" src="/static/loading.gif"> Search </span>
+            <div id="dvsel" style="display: none">
+              <select class="form-control selectpicker" id="robotsel"></select><br>
+            </div>
+              {{ form.robot_mac(id="robotmac", class="form-control") }}
+              {% for error in form.robot_mac.errors %}
+                <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
+              {% endfor %}
+          </div><br>
+
+        <div class="control-group">
+          <div class="controls">
+            <input class="btn btn-primary" type="submit" value="Sign Up">
+          </div>
+      </div>
+    </form>
+  </div>
+  <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.7.3/js/bootstrap-select.js"></script>
+  <script>
+    $('.selectpicker').selectpicker();
+  </script>
+  <script>
+  function bluesearch() {
+    var option_list = [["","---Select One---"]];
+    $("#search").hide();
+    $("#loading").show();
+    $.ajax({
+      type: "POST",
+      url: '/bluesearch',
+      dataType:'json',
+      success: function(data) {
+        $("#search").show();
+        $("#loading").hide();
+        var passdata = JSON.parse(data.devices)
+        $.each(passdata, function(i, item) {
+          var dev_item=[[item.mac,item.name]];
+          option_list = option_list.concat(dev_item);
+          dev_item=[];
+        });
+        $("#robotsel").empty();
+        alert(option_list.length-1+" devices found")
+        for (var i = 0; i < option_list.length; i++) {
+          $("#robotsel").append(
+            $("<option></option>").attr(
+              "value", option_list[i][0]).text(option_list[i][1])
+            );
+          $("#robotmac").hide();
+          $('#dvsel').show();
+          $('#robotsel').selectpicker('refresh');
+        }
+      },
+      error: function(){
+        alert("Error");
+      }
+    });
+  }
+  </script>
 {% endblock %}
