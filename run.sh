@@ -6,4 +6,5 @@ udevadm trigger
 hciconfig hci0 up
 echo "Testing working directory and starting run.py"
 flask/bin/python tests.py
+flask/bin/python db_start.py
 flask/bin/python run.py

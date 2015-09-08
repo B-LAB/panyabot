@@ -1,6 +1,7 @@
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
-datadir = os.path.join(basedir, 'data')
+rootdir, panyafolder = os.path.split(basedir)
+datadir = os.path.join(rootdir, 'data')
 
 if not (os.path.exists(datadir)):
 	os.mkdir(datadir)

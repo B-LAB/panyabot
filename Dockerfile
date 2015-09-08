@@ -20,6 +20,7 @@ RUN sudo apt-get update && apt-get install -y \
 
 # Set application directory tree
 COPY . /panyabot
+RUN mkdir data
 WORKDIR /panyabot
 RUN cd /panyabot
 
@@ -28,9 +29,6 @@ RUN pip install virtualenv
 RUN virtualenv flask --system-site-packages
 RUN flask/bin/pip install -r requirements.txt
 RUN chmod 755 run.sh
-RUN flask/bin/python db_create.py
-RUN flask/bin/python db_migrate.py
-RUN flask/bin/python tests.py
 
 # Expose ports
 EXPOSE 5000
