@@ -1,3 +1,4 @@
+#!flask/bin/python
 from config import datadir
 from db_create import setdb
 from db_migrate import migdb
