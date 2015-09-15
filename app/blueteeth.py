@@ -2,6 +2,7 @@ import bluetooth
 from flask import json
 from sys import platform as _platform
 
+# Uncomment the following lines to enable BLE search
 # if _platform == "linux" or _platform == "linux2":
 # 	from bluetooth.ble import DiscoveryService
 # 	blescan = True
@@ -25,6 +26,7 @@ def leginquire():
 	response = json.dumps(resp)
 	return response
 
+# Uncomment the following lines to enable BLE search
 # def bleinquire():
 # 	global resp
 # 	global i
