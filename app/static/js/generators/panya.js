@@ -23,6 +23,16 @@ goog.provide('Blockly.Python.variables');
 
 goog.require('Blockly.Python');
 
+Blockly.Python['panya_pin'] = function(block) {
+  var value_pin = Blockly.Python.valueToCode(block, 'pin', Blockly.Python.ORDER_NONE) || '0';
+  var dropdown_state = block.getFieldValue('logicstate');
+  var code = 'panya.PanyaPin('+value_pin+''+"\,"+dropdown_state+")\n";
+  if (!Blockly.Python.definitions_['import_panya']){
+  Blockly.Python.definitions_['import_panya'] = 'import panya';
+  }
+  return code;
+};
+
 Blockly.Python['panya_stop'] = function(block) {
   // Stop the panyabot. Change the value of code to the appropriate python function
   var code = 'panya.PanyaStop()\n';
@@ -33,10 +43,10 @@ Blockly.Python['panya_stop'] = function(block) {
 };
 
 Blockly.Python['panya_move'] = function(block) {
-  // Passed argument is the time for whic we want panya to move
-  var dropdown_direction = block.getTitleValue('Direction');
+  // Passed argument is the time for which we want panya to move
+  var dropdown_longdir = block.getTitleValue('longdir');
   // Move the translate the panyabot through the given displacement vector
-  var code = 'panya.PanyaMove('+"\'"+dropdown_direction+"\')\n";
+  var code = 'panya.PanyaMove('+dropdown_longdir+")\n";
   if (!Blockly.Python.definitions_['import_panya']){
 	Blockly.Python.definitions_['import_panya'] = 'import panya';
 	}
@@ -44,9 +54,9 @@ Blockly.Python['panya_move'] = function(block) {
 };
 
 Blockly.Python['panya_turn'] = function(block) {
-  var dropdown_direction = block.getTitleValue('direction');
+  var dropdown_latdir = block.getTitleValue('latdir');
   // Turn the panyabot in the specified direction
-  var code = 'panya.PanyaTurn('+"\'"+dropdown_direction+"\')\n";
+  var code = 'panya.PanyaTurn('+dropdown_latdir+")\n";
   if (!Blockly.Python.definitions_['import_panya']) {
 	Blockly.Python.definitions_['import_panya'] = 'import panya';
 	}
