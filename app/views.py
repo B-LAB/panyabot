@@ -1,7 +1,7 @@
 from flask import render_template, url_for, request, g, flash, redirect, jsonify
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from app import app, db, login_manager, bcrypt
-from .blueteeth import leginquire
+from .blueteeth import leginquire, parseupload
 from .forms import LoginForm, RegistrationForm
 from .models import User, Robot
 
@@ -21,6 +21,11 @@ def internal_error(error):
 @login_manager.user_loader
 def user_loader(user_id):
 	return User.query.get(int(user_id))
+
+@app.route('/bluesend', methods=['POST'])
+def bluesend():
+	parseupload(request.json['panya'])
+	return jsonify({'status':'OK'})
 
 @app.route('/bluesearch', methods=['POST'])
 def bluesearch():

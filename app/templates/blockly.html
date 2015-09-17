@@ -2,7 +2,9 @@
 {% block content %}
 
   <div class="btn btn-info btn-lg" onclick="showCode()"><i class="glyphicon glyphicon-play-circle"></i>Run</a></div>
-  <div class="btn btn-success btn-lg" onclick="uploadCode()"><i class="glyphicon glyphicon-upload"></i>Upload</a></div>
+  <div class="btn btn-success btn-lg" onclick="uploadCode()"><i class="glyphicon glyphicon-upload" id="upicon"></i>
+  <img id="loading" style="display: none" height="20" width="20" src="/static/loading.gif">
+  Upload</a></div>
 
   <table>
   	<tr>
@@ -91,7 +93,24 @@
       alert(code);
     }
     function uploadCode() {
-      alert("Dummy Code Upload")
+      $("#upicon").hide();
+      $("#loading").show();
+      var code = Blockly.Python.workspaceToCode(workspace);
+      $.ajax({
+        type: "POST",
+        url: '/bluesend',
+        data: JSON.stringify({panya:code}),
+        contentType: 'application/json;charset=UTF-8',
+        dataType:'json',
+        success: function() {
+          $("#upicon").show();
+          $("#loading").hide();
+          alert('Done!')
+        },
+        error: function(){
+          alert("Error");
+        }
+      });
     }
   </script>
 {% endblock %}

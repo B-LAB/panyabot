@@ -1,6 +1,7 @@
 import bluetooth
 from flask import json
 from sys import platform as _platform
+import time
 
 # Uncomment the following lines to enable BLE search
 # if _platform == "linux" or _platform == "linux2":
@@ -25,6 +26,10 @@ def leginquire():
 		# bleinquire()
 	response = json.dumps(resp)
 	return response
+
+def parseupload(code):
+	print code
+	time.sleep(5)
 
 # Uncomment the following lines to enable BLE search
 # def bleinquire():
