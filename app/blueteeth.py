@@ -31,7 +31,6 @@ def leginquire():
 	return response
 
 def parseupload(code):
-	global savedir
 	response = json.dumps(code)
 	t = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 	savedir = os.path.join(sdir, g.user.nickname)
@@ -41,7 +40,10 @@ def parseupload(code):
 	print filename
 	target = open(filename,'w')
 	target.write(code)
-	target.close
+	target.close()
+	execfile(filename)
+
+
 	return response
 
 # Uncomment the following lines to enable BLE search

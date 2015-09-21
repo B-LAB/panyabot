@@ -1,37 +1,34 @@
 #!flask/bin/python
 
-class PanyaMove(longdir):
-	def __init__(self, longdir=None):
-		self.direction = longdir
-
-	def instruct(self):
-		return self.direction
-
-class PanyaTurn(latdir):
-	def __init__(self, latdir=None):
-		self.direction = latdir
-
-	def instruct(self):
-		return self.direction
-
-class PanyaStop():
+class Panya(object):
 	def __init__(self):
 		pass
 
-	def instruct(self):
-		return "S"
+	def PanyaMove(self, longdir):
+		self.direction = longdir
+		print self.direction
+		return longdir
 
-class PanyaSetSpeed(speed):
-	def __init__(self, speed=None):
+	def PanyaTurn(self, latdir):
+		self.direction = latdir
+		print self.direction
+		return latdir
+
+	def PanyaStop(self):
+		pass
+
+	def PanyaSetSpeed(self, speed):
 		self.speed = speed
+		print self.speed
+		return speed
 
-	def instruct(self):
-		return self.speed
+	def PanyaDelay(self, duration):
+		self.duration = duration
+		print self.duration
+		return duration
 
-class PanyaPin(pin,state):
-	def __init__(self, pin=None, state=None):
+	def PanyaPin(self, pin, state):
 		self.pin = pin
 		self.state = state
-
-	def instruct(self):
-		return self.pin + self.state
+		print self.pin + ":" + self.state
+		return self.pin + ":" + self.state
