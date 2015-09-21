@@ -26,9 +26,9 @@ goog.require('Blockly.Python');
 Blockly.Python['time_delay'] = function(block) {
   var value_time = Blockly.Python.valueToCode(block, 'time', Blockly.Python.ORDER_NONE) || '0';
   // delay for the prescribed amount of time
-  var code = 'time.sleep('+value_time+")\n";
-  if (!Blockly.Python.definitions_['import_time']) {
-	Blockly.Python.definitions_['import_time'] = 'import time';
-	}
+  var code = 'Panya.PanyaDelay('+"\'"+value_time+""+"\')\n";
+  if (!Blockly.Python.definitions_['import_panya']) {
+  Blockly.Python.definitions_['import_panya'] = 'import panya\nPanya=panya.Panya()';
+  }
   return code;
 };

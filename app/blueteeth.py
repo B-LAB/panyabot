@@ -30,8 +30,44 @@ def leginquire():
 	response = json.dumps(resp)
 	return response
 
+def sdpbrowse(uid=None):
+	target = uid
+	target = "c0:ee:fb:03:9c:13"
+	# target = "98:D3:31:40:1A:94"
+	print target
+	if target == "all": target = None
+
+	services = bluetooth.find_service(address=target)
+
+	if len(services) > 0:
+	    print("found %d services on %s" % (len(services), target))
+	    print()
+	else:
+	    print("no services found")
+
+	for svc in services:
+	    print("Service Name: %s"    % svc["name"])
+	    print("    Host:        %s" % svc["host"])
+	    print("    Description: %s" % svc["description"])
+	    print("    Provided By: %s" % svc["provider"])
+	    print("    Protocol:    %s" % svc["protocol"])
+	    print("    channel/PSM: %s" % svc["port"])
+	    print("    svc classes: %s "% svc["service-classes"])
+	    print("    profiles:    %s "% svc["profiles"])
+	    print("    service id:  %s "% svc["service-id"])
+	    print()
+
+def panyadata(arg1):
+	from app import db
+	from app.models import User, Robot
+	user = User.query.filter_by(nickname=g.user.nickname).first()
+	robot = Robot.query.filter_by(user_id=user.id).first()
+	sdpbrowse(robot.macid)
+	for i in range(0,len(arg1)):
+		print arg1[i]
+
 def parseupload(code):
-	global savedir
+	import panya
 	response = json.dumps(code)
 	t = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 	savedir = os.path.join(sdir, g.user.nickname)
@@ -41,7 +77,11 @@ def parseupload(code):
 	print filename
 	target = open(filename,'w')
 	target.write(code)
-	target.close
+	target.close()
+	execfile(filename,globals(),locals())
+	# panya.commands.append("COUNT="+str(locals()['count']+1))
+	panyadata(panya.commands)
+	panya.commands = []
 	return response
 
 # Uncomment the following lines to enable BLE search
