@@ -22,14 +22,13 @@ def internal_error(error):
 def user_loader(user_id):
 	return User.query.get(int(user_id))
 
-@app.route('/bluesend', methods=['POST'])
-def bluesend():
-	parseupload(request.json['panya'])
-	return jsonify({'status':'OK'})
-
-@app.route('/bluesearch', methods=['POST'])
-def bluesearch():
-	return jsonify({
+@app.route('/bluetooth', methods=['POST','GET'])
+def blue():
+	if request.method == 'POST':
+		parseupload(request.json['panya'])
+		return jsonify({'status':'OK'})
+	if request.method == 'GET':
+		return jsonify({
 		'devices': leginquire()
 		})
 

@@ -44,7 +44,7 @@ Blockly.Python['panya_stop'] = function(block) {
 
 Blockly.Python['panya_move'] = function(block) {
   // Passed argument is the time for which we want panya to move
-  var dropdown_longdir = block.getTitleValue('longdir');
+  var dropdown_longdir = block.getFieldValue('longdir');
   // Move the translate the panyabot through the given displacement vector
   var code = 'panya.PanyaMove('+dropdown_longdir+")\n";
   if (!Blockly.Python.definitions_['import_panya']){
@@ -54,7 +54,7 @@ Blockly.Python['panya_move'] = function(block) {
 };
 
 Blockly.Python['panya_turn'] = function(block) {
-  var dropdown_latdir = block.getTitleValue('latdir');
+  var dropdown_latdir = block.getFieldValue('latdir');
   // Turn the panyabot in the specified direction
   var code = 'panya.PanyaTurn('+dropdown_latdir+")\n";
   if (!Blockly.Python.definitions_['import_panya']) {

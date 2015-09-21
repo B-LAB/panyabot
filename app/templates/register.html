@@ -112,8 +112,8 @@
     $("#search").hide();
     $("#loading").show();
     $.ajax({
-      type: "POST",
-      url: '/bluesearch',
+      type: "GET",
+      url: '/bluetooth',
       dataType:'json',
       success: function(data) {
         $("#search").show();

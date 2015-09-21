@@ -30,7 +30,7 @@ Blockly.Blocks['panya_pin'] = {
         .appendTitle("switch pin")
         .appendField("");
     this.appendDummyInput()
-        .appendField(new Blockly.FieldDropdown([["ON", "ON"], ["OFF", "OFF"]]), "logicstate");
+        .appendField(new Blockly.FieldDropdown([["ON", "I"], ["OFF", "O"]]), "logicstate");
     this.setInputsInline(true);
     this.setPreviousStatement(true);
     this.setNextStatement(true);
@@ -44,7 +44,7 @@ Blockly.Blocks['panya_move'] = {
     init: function() {
         this.appendDummyInput()
             .appendTitle("move")
-            .appendTitle(new Blockly.FieldDropdown([["forward", "forward"], ["backward", "backward"]]), "longdir");
+            .appendTitle(new Blockly.FieldDropdown([["forward", "F"], ["backward", "B"]]), "longdir");
         this.setInputsInline(true);
         this.setPreviousStatement(true);
         this.setNextStatement(true);
@@ -58,7 +58,7 @@ Blockly.Blocks['panya_turn'] = {
   init: function() {
     this.appendDummyInput()
         .appendTitle("turn")
-        .appendTitle(new Blockly.FieldDropdown([["left", "left"], ["right", "right"]]), "latdir");
+        .appendTitle(new Blockly.FieldDropdown([["left", "L"], ["right", "R"]]), "latdir");
     this.setPreviousStatement(true);
     this.setNextStatement(true);
     this.setTooltip('Turn the PanyaBot in the given direction.');

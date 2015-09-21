@@ -98,7 +98,7 @@
       var code = Blockly.Python.workspaceToCode(workspace);
       $.ajax({
         type: "POST",
-        url: '/bluesend',
+        url: '/bluetooth',
         data: JSON.stringify({panya:code}),
         contentType: 'application/json;charset=UTF-8',
         dataType:'json',

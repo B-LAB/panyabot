@@ -8,6 +8,7 @@ if not (os.path.exists(datadir)):
 
 CSRF_ENABLED = True
 DEBUG = True
+DIR = datadir
 
 SECRET_KEY = 'you-will-never-guess'
 

@@ -1,7 +1,9 @@
 import bluetooth
-from flask import json
+from flask import json, g
 from sys import platform as _platform
-import time
+import os
+from datetime import datetime
+from app import app
 
 # Uncomment the following lines to enable BLE search
 # if _platform == "linux" or _platform == "linux2":
@@ -10,6 +12,7 @@ import time
 # else:
 # 	blescan = False
 
+sdir= app.config["DIR"]
 resp = []
 
 def leginquire():
@@ -28,8 +31,18 @@ def leginquire():
 	return response
 
 def parseupload(code):
-	print code
-	time.sleep(5)
+	global savedir
+	response = json.dumps(code)
+	t = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+	savedir = os.path.join(sdir, g.user.nickname)
+	if not os.path.exists(savedir):
+		os.mkdir(savedir)
+	filename = os.path.join(savedir, t+'.py')
+	print filename
+	target = open(filename,'w')
+	target.write(code)
+	target.close
+	return response
 
 # Uncomment the following lines to enable BLE search
 # def bleinquire():
