@@ -1,7 +1,7 @@
 from flask import render_template, url_for, request, g, flash, redirect, jsonify
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from app import app, db, login_manager, bcrypt
-from .blueteeth import leginquire
+from .blueteeth import leginquire, parseupload
 from .forms import LoginForm, RegistrationForm
 from .models import User, Robot
 
@@ -22,9 +22,13 @@ def internal_error(error):
 def user_loader(user_id):
 	return User.query.get(int(user_id))
 
-@app.route('/bluesearch', methods=['POST'])
-def bluesearch():
-	return jsonify({
+@app.route('/bluetooth', methods=['POST','GET'])
+def blue():
+	if request.method == 'POST':
+		parseupload(request.json['panya'])
+		return jsonify({'status':'OK'})
+	if request.method == 'GET':
+		return jsonify({
 		'devices': leginquire()
 		})
 

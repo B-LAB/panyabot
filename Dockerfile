@@ -14,7 +14,6 @@ RUN sudo apt-get update && apt-get install -y \
     python-dev \
     python-pip \
     usbutils \
-    bluetooth \
     bluez \
     python-bluez
 

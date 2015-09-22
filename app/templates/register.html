@@ -73,13 +73,14 @@
             <i style="display: show" id="search" class="glyphicon glyphicon-search"></i>
             <img id="loading" style="display: none" height="20" width="20" src="/static/loading.gif"> Search </span>
             <div id="dvsel" style="display: none">
-              <select class="form-control selectpicker" id="robotsel"></select><br>
+              <select class="form-control selectpicker show-tick" data-size="5" id="robotsel"></select><br>
             </div>
               {{ form.robot_mac(id="robotmac", class="form-control") }}
-              {% for error in form.robot_mac.errors %}
-                <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
-              {% endfor %}
-          </div><br>
+          </div>
+          {% for error in form.robot_mac.errors %}
+            <br><span class="help-inline" style="color: red;">[{{ error }}]</span><br>
+          {% endfor %}
+          <br>
 
         <div class="control-group">
           <div class="controls">
@@ -91,6 +92,19 @@
   <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.7.3/js/bootstrap-select.js"></script>
   <script>
     $('.selectpicker').selectpicker();
+    $('#robotsel').on('change', function(){
+      var rob_mac = $(this).find(":selected").val();
+      var rob_name = $(this).find(":selected").text();
+      // alert(rob_mac + ":" + rob_name)
+      if (rob_mac == "00") {
+        $("#robotmac").show();
+        $("#robotmac").val("");
+        $("#dvsel").hide();
+      }
+      else {
+        $('#robotmac').val(rob_mac);
+      }
+    });
   </script>
   <script>
   function bluesearch() {
@@ -98,20 +112,21 @@
     $("#search").hide();
     $("#loading").show();
     $.ajax({
-      type: "POST",
-      url: '/bluesearch',
+      type: "GET",
+      url: '/bluetooth',
       dataType:'json',
       success: function(data) {
         $("#search").show();
         $("#loading").hide();
-        var passdata = JSON.parse(data.devices)
+        var passdata = JSON.parse(data.devices);
         $.each(passdata, function(i, item) {
           var dev_item=[[item.mac,item.name]];
           option_list = option_list.concat(dev_item);
           dev_item=[];
         });
+        option_list = option_list.concat([["00","---Manual Entry---"]]);
         $("#robotsel").empty();
-        alert(option_list.length-1+" devices found")
+        alert(option_list.length-2+" devices found")
         for (var i = 0; i < option_list.length; i++) {
           $("#robotsel").append(
             $("<option></option>").attr(

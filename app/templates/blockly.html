@@ -2,7 +2,9 @@
 {% block content %}
 
   <div class="btn btn-info btn-lg" onclick="showCode()"><i class="glyphicon glyphicon-play-circle"></i>Run</a></div>
-  <div class="btn btn-success btn-lg" onclick="uploadCode()"><i class="glyphicon glyphicon-upload"></i>Upload</a></div>
+  <div class="btn btn-success btn-lg" onclick="uploadCode()"><i class="glyphicon glyphicon-upload" id="upicon"></i>
+  <img id="loading" style="display: none" height="20" width="20" src="/static/loading.gif">
+  Upload</a></div>
 
   <table>
   	<tr>
@@ -29,18 +31,35 @@
         <block type="text_print"></block>
     </category>
     <sep></sep>
-    <category name="Motors">
+    <category name="Panya">
+      <category name="Motors">
+        <block type="panya_move"></block>
+        <block type="panya_turn"></block>
+        <block type="panya_set_speed">
+          <value name="SPEED">
+            <block type="math_number">
+              <title name="NUM">100</title>
+            </block>
+          </value>
+        </block>
+        <block type="panya_stop"></block>
+      </category>
+      <category name="Pins">
+        <block type="panya_pin"></block>
+      </category>
+      <category name="Sensors">
+      </category>
+      <category name="Examples">
+      </category>
     </category>
-    <category name="LEDs">
-    </category>
-    <category name="Speakers">
-    </category>
-    <category name="Sensors">
-    </category>
-    <category name="Drivers">
-    </category>
-    <sep></sep>
-    <category name="Examples">
+    <category name="Time">
+      <block type ="time_delay">
+        <value name="time">
+          <block type="math_number">
+            <title name="NUM">10</title>
+          </block>
+        </value>
+      </block>
     </category>
   </xml>
 
@@ -74,7 +93,24 @@
       alert(code);
     }
     function uploadCode() {
-      alert("Dummy Code Upload")
+      $("#upicon").hide();
+      $("#loading").show();
+      var code = Blockly.Python.workspaceToCode(workspace);
+      $.ajax({
+        type: "POST",
+        url: '/bluetooth',
+        data: JSON.stringify({panya:code}),
+        contentType: 'application/json;charset=UTF-8',
+        dataType:'json',
+        success: function() {
+          $("#upicon").show();
+          $("#loading").hide();
+          alert('Done!')
+        },
+        error: function(){
+          alert("Error");
+        }
+      });
     }
   </script>
 {% endblock %}
