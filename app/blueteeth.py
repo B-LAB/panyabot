@@ -32,7 +32,7 @@ def leginquire():
 
 def sdpbrowse(uid=None):
 	target = uid
-	target = "c0:ee:fb:03:9c:13"
+	# target = "c0:ee:fb:03:9c:13"
 	# target = "98:D3:31:40:1A:94"
 	print target
 	if target == "all": target = None
