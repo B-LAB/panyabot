@@ -31,5 +31,9 @@ RUN chmod 755 run.sh
 # Expose ports
 EXPOSE 5000
 
+# Create environment variables
+ENV INITSYSTEM on
+ENV XDG_RUNTIME_DIR /run/user/%I
+
 # Start web app
  CMD ["/bin/bash", "run.sh"]
