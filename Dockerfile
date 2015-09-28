@@ -3,7 +3,7 @@
 # Based on raspbian
 ################################################
 #Set the base image to raspbian
-FROM resin/rpi-raspbian:jessie
+FROM resin/raspberrypi-systemd:jessie
 
 # File Author / Maintainer
 MAINTAINER Wachira Ndaiga
@@ -19,7 +19,6 @@ RUN sudo apt-get update && apt-get install -y \
 
 # Set application directory tree
 COPY . /panyabot
-RUN mkdir data
 WORKDIR /panyabot
 RUN cd /panyabot
 

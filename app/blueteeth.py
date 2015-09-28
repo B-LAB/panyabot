@@ -12,7 +12,7 @@ from app import app
 # else:
 # 	blescan = False
 
-sdir= app.config["DIR"]
+sdir = app.config["DATA"]
 resp = []
 
 def leginquire():
@@ -55,11 +55,20 @@ def sdpbrowse(uid=None):
 	    print("    service id:  %s "% svc["service-id"])
 	    print()
 
+def sendata(arg1):
+	port = 1
+	sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+	sock.connect((arg1, port))
+	sock.send("hello!!")
+	sock.close()
+
 def panyadata(arg1):
 	from app import db
 	from app.models import User, Robot
 	user = User.query.filter_by(nickname=g.user.nickname).first()
 	robot = Robot.query.filter_by(user_id=user.id).first()
+	# sendata(robot.macid)
+	print 'Sending commands to %s:' % (robot.alias)
 	sdpbrowse(robot.macid)
 	for i in range(0,len(arg1)):
 		print arg1[i]
@@ -92,5 +101,5 @@ def parseupload(code):
 # 		resp.append({'mac*':str(addr),'name*':str(name)})
 
 if __name__ == '__main__':
-	print "OS: %s" % (str(_platform))
+	# print "OS: %s" % (str(_platform))
 	print leginquire()

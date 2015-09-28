@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 
-  <div class="btn btn-info btn-lg" onclick="showCode()"><i class="glyphicon glyphicon-play-circle"></i>Run</a></div>
-  <div class="btn btn-success btn-lg" onclick="uploadCode()"><i class="glyphicon glyphicon-upload" id="upicon"></i>
+  <div class="btn btn-info btn-lg" id="run" onclick="showCode()"><i class="glyphicon glyphicon-play-circle"></i>Run</a></div>
+  <div class="btn btn-success btn-lg" id="upload" onclick="uploadCode()"><i class="glyphicon glyphicon-upload" id="upicon"></i>
   <img id="loading" style="display: none" height="20" width="20" src="/static/loading.gif">
   Upload</a></div>
 
