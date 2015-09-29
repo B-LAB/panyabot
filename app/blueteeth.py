@@ -55,21 +55,18 @@ def sdpbrowse(uid=None):
 	    print("    service id:  %s "% svc["service-id"])
 	    print()
 
-def sendata(arg1):
-	port = 1
-	sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-	sock.connect((arg1, port))
-	sock.send("hello!!")
-	sock.close()
+def rfcommreg(arg1):
+	pass
 
 def panyadata(arg1):
 	from app import db
 	from app.models import User, Robot
 	user = User.query.filter_by(nickname=g.user.nickname).first()
 	robot = Robot.query.filter_by(user_id=user.id).first()
-	# sendata(robot.macid)
+	print 'Setting up bluetoothctl and rfcomm configuration'
+	rfcommreg(robot.macid)
 	print 'Sending commands to %s:' % (robot.alias)
-	sdpbrowse(robot.macid)
+	# sdpbrowse(robot.macid)
 	for i in range(0,len(arg1)):
 		print arg1[i]
 

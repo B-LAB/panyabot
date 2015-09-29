@@ -15,7 +15,8 @@ RUN sudo apt-get update && apt-get install -y \
     python-pip \
     usbutils \
     bluez \
-    python-bluez
+    python-bluez \
+    picocom
 
 # Set application directory tree
 COPY . /panyabot
