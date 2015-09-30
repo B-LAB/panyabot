@@ -12,8 +12,14 @@ from app import app
 # else:
 # 	blescan = False
 
+bdir = app.config["BASE"]
 sdir = app.config["DATA"]
 resp = []
+
+if _platform == "linux" or _platform == "linux2":
+	rfpath = os.path.join(bdir,"app","rfcommlin.sh")
+else:
+	rfpath = os.path.join(bdir,"app","rfcommwin.sh")
 
 def leginquire():
 	global resp
@@ -56,7 +62,8 @@ def sdpbrowse(uid=None):
 	    print()
 
 def rfcommreg(arg1):
-	pass
+	import subprocess
+	subprocess.check_call(['%s' % (rfpath), str(arg1)], shell = True)
 
 def panyadata(arg1):
 	from app import db
@@ -66,7 +73,8 @@ def panyadata(arg1):
 	print 'Setting up bluetoothctl and rfcomm configuration'
 	rfcommreg(robot.macid)
 	print 'Sending commands to %s:' % (robot.alias)
-	# sdpbrowse(robot.macid)
+	# sdpbrowse(robot.macid) # HC06 and HC05 bluetooth modules don't advertise an SDP interface. Uncomment if
+	# using a module that does. Bug number will be attached to this issue.
 	for i in range(0,len(arg1)):
 		print arg1[i]
 

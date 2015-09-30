@@ -19,7 +19,7 @@ else:
 # hence DIR and BASE.
 WTF_CSRF_ENABLED = True
 SECRET_KEY = 'hbjdkja-32enkn-31k3byi'
-DEBUG = False
+DEBUG = True
 DATA = datadir
 BASE = basedir
 
