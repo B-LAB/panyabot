@@ -16,6 +16,7 @@ RUN sudo apt-get update && apt-get install -y \
     usbutils \
     bluez \
     python-bluez \
+    nano \
     picocom
 
 # Set application directory tree
@@ -28,6 +29,7 @@ RUN pip install virtualenv
 RUN virtualenv flask --system-site-packages
 RUN flask/bin/pip install -r requirements.txt
 RUN chmod 755 run.sh
+RUN chmod 755 app/rfcommlin.sh
 
 # Expose ports
 EXPOSE 5000

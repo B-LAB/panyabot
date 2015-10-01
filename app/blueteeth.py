@@ -63,7 +63,7 @@ def sdpbrowse(uid=None):
 
 def rfcommreg(arg1):
 	import subprocess
-	subprocess.check_call(['%s' % (rfpath), str(arg1)], shell = True)
+	subprocess.check_call(['%s %s' % (rfpath, str(arg1))], shell = True)
 
 def panyadata(arg1):
 	from app import db
