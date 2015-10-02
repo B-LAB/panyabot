@@ -3,7 +3,7 @@
 # Based on raspbian
 ################################################
 #Set the base image to raspbian
-FROM resin/raspberrypi-systemd:jessie
+FROM resin/raspberrypi-systemd:wheezy
 
 # File Author / Maintainer
 MAINTAINER Wachira Ndaiga
@@ -15,6 +15,7 @@ RUN sudo apt-get update && apt-get install -y \
     python-pip \
     usbutils \
     bluez \
+    python-gobject \
     python-bluez \
     nano \
     picocom
