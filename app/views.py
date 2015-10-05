@@ -1,7 +1,7 @@
 from flask import render_template, url_for, request, g, flash, redirect, jsonify
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from app import app, db, login_manager, bcrypt
-from .blueteeth import leginquire, parseupload
+from .blueteeth import leginquire, parseblocks
 from .forms import LoginForm, RegistrationForm
 from .models import User, Robot
 

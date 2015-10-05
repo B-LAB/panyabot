@@ -8,7 +8,7 @@ hciconfig hci0 up
 devfind=$(grep -q $args[0]} <<< $(rfcomm))
 if l2ping ${args[0]} -c 1; then
 	rfport=$(grep -o 'rfcomm.' <<< $(rfcomm))
-	if $devfind; then
+	if [$devfind -eq 1] && [$rfport -eq 1] ; then
 		echo "Found device at" $rfport
 		rfcomm release /dev/$rfport
 		rfcomm bind /dev/$rfport ${args[0]} 1
