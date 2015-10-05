@@ -63,12 +63,27 @@ def sdpbrowse(uid=None):
 
 def rfcommreg(arg1):
 	import subprocess
-	subprocess.check_call(['%s %s' % (rfpath, str(arg1))], shell = True)
+	output=subprocess.check_output(['%s %s' % (rfpath, str(arg1))], shell=True)
+	print '********************************************************************'
+	print output
+	print '********************************************************************'
 
 def datasend(arg1,arg2,arg3,commands):
-	import os
-	print os.environ["rfport"]
+	import serial
+	devport = os.environ["rfport"]
+	devport = "/dev/rfcomm0"
+	print devport
+	ser = serial.Serial(devport)
+	print ser
 	print 'Sending %s\'s commands to %s, alias:%s' % (arg3,arg1, arg2)
+	ser.write('1')
+	sleep(1)
+	ser.write('2')
+	sleep(1)
+	ser.write('?')
+	sleep(2)
+	ser.write('1')
+	ser.close()
 	for i in range(0,len(commands)):
 		print commands[i]
 
