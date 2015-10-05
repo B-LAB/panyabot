@@ -4,6 +4,7 @@ from sys import platform as _platform
 import os
 from datetime import datetime
 from app import app
+import time
 
 # Uncomment the following lines to enable BLE search
 # if _platform == "linux" or _platform == "linux2":
@@ -70,18 +71,18 @@ def rfcommreg(arg1):
 
 def datasend(arg1,arg2,arg3,commands):
 	import serial
-	devport = os.environ["rfport"]
+	# devport = os.environ["rfport"]
 	devport = "/dev/rfcomm0"
 	print devport
 	ser = serial.Serial(devport)
 	print ser
 	print 'Sending %s\'s commands to %s, alias:%s' % (arg3,arg1, arg2)
 	ser.write('1')
-	sleep(1)
+	time.sleep(1)
 	ser.write('2')
-	sleep(1)
+	time.sleep(1)
 	ser.write('?')
-	sleep(2)
+	time.sleep(2)
 	ser.write('1')
 	ser.close()
 	for i in range(0,len(commands)):
