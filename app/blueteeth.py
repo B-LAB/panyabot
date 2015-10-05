@@ -65,20 +65,24 @@ def rfcommreg(arg1):
 	import subprocess
 	subprocess.check_call(['%s %s' % (rfpath, str(arg1))], shell = True)
 
-def panyadata(arg1):
+def datasend(arg1,arg2,arg3,commands):
+	import os
+	print os.environ["rfport"]
+	print 'Sending %s\'s commands to %s, alias:%s' % (arg3,arg1, arg2)
+	for i in range(0,len(commands)):
+		print commands[i]
+
+def portsetup(commands):
 	from app import db
 	from app.models import User, Robot
 	user = User.query.filter_by(nickname=g.user.nickname).first()
 	robot = Robot.query.filter_by(user_id=user.id).first()
-	print 'Setting up bluetoothctl and rfcomm configuration'
-	rfcommreg(robot.macid)
-	print 'Sending commands to %s:' % (robot.alias)
 	# sdpbrowse(robot.macid) # HC06 and HC05 bluetooth modules don't advertise an SDP interface. Uncomment if
 	# using a module that does. Bug number will be attached to this issue.
-	for i in range(0,len(arg1)):
-		print arg1[i]
+	rfcommreg(robot.macid)
+	datasend(robot.macid,robot.alias,user.nickname,commands)
 
-def parseupload(code):
+def parseblocks(code):
 	import panya
 	response = json.dumps(code)
 	t = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
@@ -92,7 +96,7 @@ def parseupload(code):
 	target.close()
 	execfile(filename,globals(),locals())
 	# panya.commands.append("COUNT="+str(locals()['count']+1))
-	panyadata(panya.commands)
+	portsetup(panya.commands)
 	panya.commands = []
 	return response
 

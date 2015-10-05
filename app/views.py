@@ -25,7 +25,7 @@ def user_loader(user_id):
 @app.route('/bluetooth', methods=['POST','GET'])
 def blue():
 	if request.method == 'POST':
-		parseupload(request.json['panya'])
+		parseblocks(request.json['panya'])
 		return jsonify({'status':'OK'})
 	if request.method == 'GET':
 		return jsonify({

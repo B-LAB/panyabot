@@ -19,5 +19,7 @@ if l2ping ${args[0]} -c 1; then
 	fi
 	rfcomm
 else
+	rfport="NULL"
 	echo ${args[0]} "not found!"
 fi
+export rfport
