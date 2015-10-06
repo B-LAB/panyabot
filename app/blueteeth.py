@@ -62,21 +62,29 @@ def sdpbrowse(uid=None):
 	    print("    service id:  %s "% svc["service-id"])
 	    print()
 
-def rfcommreg(arg1):
+def rfcommreg(rfcset,macid,alias,unick,commands,uid): # (Qflag,rfcset,robot.macid,robot.alias,user.nickname,commands,user.id)
 	import subprocess
-	output=subprocess.check_output(['%s %s' % (rfpath, str(arg1))], shell=True)
-	print '********************************************************************'
-	print output
-	print '********************************************************************'
+	try:
+		output=subprocess.check_output(['%s %s %s' % (rfpath, str(macid), str(rfcset))], shell=True)
+		print '********************************************************************'
+		print output
+		print '********************************************************************'
+	except:
+		print "Error Binding RFCOMM Device"
+	datasend(macid,alias,unick,commands,rfcset,uid)
 
-def datasend(arg1,arg2,arg3,commands):
+# datasend(robot.macid,robot.alias,user.nickname,commands)
+def datasend(macid,alias,unick,commands,rfcset,uid):
 	import serial
+	import subprocess
+	from app import db
+	from app.models import User, Robot
 	# devport = os.environ["rfport"]
-	devport = "/dev/rfcomm0"
+	devport = rfcset
 	print devport
 	ser = serial.Serial(devport)
 	print ser
-	print 'Sending %s\'s commands to %s, alias:%s' % (arg3,arg1, arg2)
+	print 'Sending %s\'s commands to %s, alias:%s' % (unick,macid,alias)
 	ser.write('1')
 	time.sleep(1)
 	ser.write('2')
@@ -85,18 +93,42 @@ def datasend(arg1,arg2,arg3,commands):
 	time.sleep(2)
 	ser.write('1')
 	ser.close()
+	reset = "release"
+	try:
+		output=subprocess.check_output(['%s %s %s %s' % (rfpath, str(macid), str(rfcset), str(reset))], shell=True)
+		print '********************************************************************'
+		print output
+		print '********************************************************************'
+		robot = Robot.query.filter_by(user_id=uid).first()
+		robot.status="offline"
+		db.session.commit()
+	except:
+		print "Error Releasing RFCOMM device!"
+		db.session.rollback()
 	for i in range(0,len(commands)):
 		print commands[i]
 
 def portsetup(commands):
 	from app import db
 	from app.models import User, Robot
+	Qflag = False
 	user = User.query.filter_by(nickname=g.user.nickname).first()
 	robot = Robot.query.filter_by(user_id=user.id).first()
+	robots = Robot.query.all()
+	for rob in robots:
+		print "%s:%s" %(robot.alias,robot.status)
+		if (rob.status=="online"):
+			print "Queuing bluetooth upload"
+			Qflag = True
+			rfcset = "NULL"
+	if not Qflag:
+		rfcset = "/dev/rfcomm0"
+		robot.status="online"
+		db.session.commit()
+		rfcommreg(rfcset,robot.macid,robot.alias,user.nickname,commands,user.id)
 	# sdpbrowse(robot.macid) # HC06 and HC05 bluetooth modules don't advertise an SDP interface. Uncomment if
 	# using a module that does. Bug number will be attached to this issue.
-	rfcommreg(robot.macid)
-	datasend(robot.macid,robot.alias,user.nickname,commands)
+	# datasend(robot.macid,robot.alias,user.nickname,commands)
 
 def parseblocks(code):
 	import panya
