@@ -22,7 +22,7 @@ def setdb():
 		print 'Error creating migration data repository'
 
 def main():
-	pass
+	setdb()
 
 if __name__ == "__main__":
 	main()

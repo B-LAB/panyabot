@@ -4,7 +4,7 @@ args=("$@")
 # you can access these args using this format: ${arg[x]} with zero indexing
 hciconfig hci0 up
 
-if [ -z "${arg[2]}" ]; then
+if [ -z "${args[2]}" ]; then
 	echo "Setting up RFCOMM bind for" ${args[0]} "on *NIX host"
 	# check if submitted uid-attached host is up
 	if l2ping ${args[0]} -c 1; then
@@ -28,6 +28,6 @@ if [ -z "${arg[2]}" ]; then
 	fi
 else
 	echo "Setting up RFCOMM release for" ${args[0]} "on *NIX host"
-	rfcomm release ${arg[1]}
-	echo "Rfcomm port" ${arg[1]} "released:" $(rfcomm)
+	rfcomm release ${args[1]}
+	echo "Rfcomm port" ${args[1]} ",rfcomm output:" $(rfcomm)
 fi
