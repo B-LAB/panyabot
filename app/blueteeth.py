@@ -126,6 +126,9 @@ def portsetup(commands):
 			print "Queuing bluetooth upload"
 			Qflag = True
 			rfcset = "NULL"
+			# a procedure to manage concurrent bluetooth requests
+			# should come here
+			Qflag = False
 	if not Qflag:
 		rfcset = "/dev/rfcomm0"
 		robot.status="active"
