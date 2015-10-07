@@ -79,9 +79,13 @@ def rfcommreg(rfcset,macid,alias,unick,commands,uid):
 		robot.status="inactive"
 		db.session.commit()
 		print "Error Binding RFCOMM Device"
+		reset = "y"
+		subprocess.check_output(['%s %s %s %s' % (rfpath, str(macid), str(rfcset), str(reset))], shell=True)
+		reset = ""
 
 def datasend(macid,alias,unick,commands,rfcset,uid):
-	devport = rfcset
+	devport = "/dev/"
+	devport+=str(rfcset)
 	print devport
 	ser = serial.Serial(devport)
 	print ser
@@ -114,6 +118,7 @@ def datasend(macid,alias,unick,commands,rfcset,uid):
 		robot.status="inactive"
 		reset = ""
 		db.session.commit()
+		subprocess.check_output(['%s %s %s %s' % (rfpath, str(macid), str(rfcset), str(reset))], shell=True)
 
 def portsetup(commands):
 	Qflag = False
@@ -130,7 +135,7 @@ def portsetup(commands):
 			# should come here
 			Qflag = False
 	if not Qflag:
-		rfcset = "/dev/rfcomm0"
+		rfcset = "rfcomm0"
 		robot.status="active"
 		db.session.commit()
 		rfcommreg(rfcset,robot.macid,robot.alias,user.nickname,commands,user.id)
