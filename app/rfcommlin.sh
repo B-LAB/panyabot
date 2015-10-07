@@ -15,6 +15,7 @@ if [ -z "${args[2]}" ]; then
 		devfind=$(grep -o ${args[0]} <<< $(rfcomm))
 		if [ -z "$devfind" ]; then
 			echo 1234 | bluez-simple-agent $hcino ${args[0]}
+			rfcomm release ${args[1]}
 			rfcomm bind ${args[1]} ${args[0]} 1
 			echo "rfport:" ${args[1]}
 		else
