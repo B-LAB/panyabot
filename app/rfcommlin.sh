@@ -4,6 +4,8 @@ args=("$@")
 # you can access these args using this format: ${arg[x]} with zero indexing
 hcino=$(grep -o "hci." <<< $(hciconfig))
 hciconfig $hcino up
+currdev=$(echo "dev_"${args[0]} | tr : _)
+bdevpath="/org/bluez/283/"$hcino"/"$currdev
 
 if [ -z "${args[2]}" ]; then
 	echo "Setting up RFCOMM bind for" ${args[0]} "on *NIX host"
@@ -12,7 +14,7 @@ if [ -z "${args[2]}" ]; then
 		# devfind checks if submitted UID is already registered on rfcomm
 		devfind=$(grep -o ${args[0]} <<< $(rfcomm))
 		if [ -z "$devfind" ]; then
-			echo 1234 | bluez-simple-agent hci0 ${args[0]}
+			echo 1234 | bluez-simple-agent $hcino ${args[0]}
 			rfcomm bind ${args[1]} ${args[0]} 1
 			echo "rfport:" ${args[1]}
 		else
@@ -30,5 +32,6 @@ if [ -z "${args[2]}" ]; then
 else
 	echo "Setting up RFCOMM release for" ${args[0]} "on *NIX host"
 	rfcomm release ${args[1]}
+	bluez-simple-agent $hcino ${args[0]} remove
 	echo "Rfcomm port" ${args[1]} ",rfcomm output:" $(rfcomm)
 fi

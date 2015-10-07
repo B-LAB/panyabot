@@ -95,6 +95,8 @@ def datasend(macid,alias,unick,commands,rfcset,uid):
 	ser.write('1')
 	ser.close()
 	reset = "y"
+	for i in range(0,len(commands)):
+		print commands[i]
 	try:
 		output=subprocess.check_output(['%s %s %s %s' % (rfpath, str(macid), str(rfcset), str(reset))], shell=True)
 		print '********************************************************************'
@@ -112,8 +114,6 @@ def datasend(macid,alias,unick,commands,rfcset,uid):
 		robot.status="inactive"
 		reset = ""
 		db.session.commit()
-	for i in range(0,len(commands)):
-		print commands[i]
 
 def portsetup(commands):
 	Qflag = False
