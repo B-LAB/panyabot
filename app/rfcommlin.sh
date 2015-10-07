@@ -2,7 +2,8 @@
 args=("$@")
 # $@ is a special array used to store bash command line arguments
 # you can access these args using this format: ${arg[x]} with zero indexing
-hciconfig hci0 up
+hcino=$(grep -o "hci." <<< $(hciconfig))
+hciconfig $hcino up
 
 if [ -z "${args[2]}" ]; then
 	echo "Setting up RFCOMM bind for" ${args[0]} "on *NIX host"

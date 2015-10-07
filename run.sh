@@ -5,8 +5,9 @@ udevd &
 udevadm trigger
 service dbus restart
 service bluetooth restart
-hciconfig hci0 up
 echo "Testing working directory and starting run.py"
 flask/bin/python tests.py
 flask/bin/python db_start.py
 flask/bin/python run.py
+hcino=$(grep -o "hci." <<< $(hciconfig))
+hciconfig $hcino up
