@@ -42,6 +42,7 @@ class Robot(db.Model):
 	id=db.Column(db.Integer, primary_key=True)
 	alias=db.Column(db.String(64), index=True, unique=True)
 	macid=db.Column(db.String(48), index=True, unique=True)
+	status=db.Column(db.String(14), index=True, unique=True)
 	totaltime=db.Column(db.Integer, index=True)
 	lastuse=db.Column(db.DateTime)
 	user_id=db.Column(db.Integer, db.ForeignKey('user.id'))

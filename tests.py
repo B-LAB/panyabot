@@ -1,21 +1,25 @@
 #!flask/bin/python
 import os
 import unittest
-import datetime
 
-from config import datadir
+from config import DATA
 from app import app, db, bcrypt
 from app.models import User, Robot
 
 class TestCase(unittest.TestCase):
+
 	def setUp(self):
-		print 'Setting up database testing environment',
+		print 'Setting configuration settings',
 		app.config['TESTING'] = True
 		app.config['WTF_CSRF_ENABLED'] = False
-		app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(datadir, 'test.db')
+		app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(DATA, 'test.db')
+		print '- Done!'
+		print 'Creating test database',
 		self.app = app.test_client()
 		db.create_all()
+		print '- Done!'
 
+		print 'Creating validated user and robot profiles',
 		u = User(firstname='John', lastname='Doe', nickname='Jay', password=bcrypt.generate_password_hash('JD'))
 		r = Robot(alias='Ninja', macid='10:14:06:30:19:86', owner=User.query.filter_by(nickname=u.nickname).first())
 		db.session.add(u)
@@ -33,6 +37,9 @@ class TestCase(unittest.TestCase):
 		return self.app.post('/login', data=dict(nickname=nickname, password=password),
 							follow_redirects=True)
 
+	def blockly(self):
+		return self.app.get('/blockly', follow_redirects=True)
+
 	def logout(self):
 		return self.app.get('/logout', follow_redirects=True)
 
@@ -46,6 +53,9 @@ class TestCase(unittest.TestCase):
 		result = self.register('John', 'Doe', 'Jay', '10:14:06:30:19:90',
 								'Geisha', 'JD', 'JD')
 		assert 'This nickname is already in use' in result.data
+		result = self.register('John', 'Doe', 'JayZ', '10:14:06:30:19:90',
+								'Geisha', 'JD', 'JDc')
+		assert 'Password must match' in result.data
 		result = self.register('John', 'Doe', 'Johnny', '10:14:06:30:19:86',
 								'Geisha', 'JD', 'JD')
 		assert 'This robot already has an owner' in result.data
@@ -63,6 +73,11 @@ class TestCase(unittest.TestCase):
 		assert 'You have been logged out' in result.data
 		result = self.login('admin', 'default')
 		assert 'Invalid login' in result.data
+
+	def test_block_run(self):
+		self.login('Jay','JD')
+		result = self.blockly()
+		assert 'blocklyArea' in result.data
 
 if __name__ == '__main__':
 	unittest.main()
