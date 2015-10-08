@@ -13,3 +13,4 @@ hcino=$(grep -o "hci." <<< $(hciconfig))
 hcist=$(grep -o "down" <<< $(hciconfig))
 if [ -z "$hcist"]; then
 	hciconfig $hcino up
+fi

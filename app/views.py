@@ -40,7 +40,7 @@ def register():
 		pwd_hash=bcrypt.generate_password_hash(form.password.data)
 		user = User(firstname=form.firstname.data, lastname=form.lastname.data, nickname=form.nickname.data, password=pwd_hash)
 		db.session.add(user)
-		robot = Robot(alias=form.robot_name.data, macid=form.robot_mac.data, owner=User.query.filter_by(nickname=(form.nickname.data)).first())
+		robot = Robot(alias=form.robot_name.data, macid=form.robot_mac.data, owner=User.query.filter_by(nickname=(form.nickname.data)).first(), status="inactive")
 		db.session.add(robot)
 		db.session.commit()
 		flash('You\'re account has been created. Please log in')

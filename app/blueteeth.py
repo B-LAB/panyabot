@@ -21,6 +21,7 @@ import panya
 bdir = app.config["BASE"]
 sdir = app.config["DATA"]
 resp = []
+reset=""
 
 if _platform == "linux" or _platform == "linux2":
 	rfpath = os.path.join(bdir,"app","rfcommlin.sh")
@@ -68,13 +69,14 @@ def sdpbrowse(uid=None):
 	    print()
 
 def rfcommreg(rfcset,macid,alias,unick,commands,uid):
+	global reset
 	try:
 		output=subprocess.check_output(['%s %s %s' % (rfpath, str(macid), str(rfcset))], shell=True)
 		print '********************************************************************'
 		print output
 		print '********************************************************************'
 		datasend(macid,alias,unick,commands,rfcset,uid)
-	except:
+	except Exception,e:
 		robot = Robot.query.filter_by(user_id=uid).first()
 		robot.status="inactive"
 		db.session.commit()
@@ -82,8 +84,10 @@ def rfcommreg(rfcset,macid,alias,unick,commands,uid):
 		reset = "y"
 		subprocess.check_output(['%s %s %s %s' % (rfpath, str(macid), str(rfcset), str(reset))], shell=True)
 		reset = ""
+		print str(e)
 
 def datasend(macid,alias,unick,commands,rfcset,uid):
+	global reset
 	devport = "/dev/"
 	devport+=str(rfcset)
 	print devport
@@ -107,18 +111,20 @@ def datasend(macid,alias,unick,commands,rfcset,uid):
 		print output
 		print '********************************************************************'
 		robot = Robot.query.filter_by(user_id=uid).first()
+		robots = Robot.query.all()
 		robot.status="inactive"
 		reset = ""
 		db.session.commit()
 		for rob in robots:
 			print "%s:%s" %(robot.alias,robot.status)
-	except:
+	except Exception,e:
 		print "Error Releasing RFCOMM device!"
 		robot = Robot.query.filter_by(user_id=uid).first()
 		robot.status="inactive"
 		reset = ""
 		db.session.commit()
 		subprocess.check_output(['%s %s %s %s' % (rfpath, str(macid), str(rfcset), str(reset))], shell=True)
+		print str(e)
 
 def portsetup(commands):
 	Qflag = False
