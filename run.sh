@@ -10,4 +10,6 @@ flask/bin/python tests.py
 flask/bin/python db_start.py
 flask/bin/python run.py
 hcino=$(grep -o "hci." <<< $(hciconfig))
-hciconfig $hcino up
+hcist=$(grep -o "down" <<< $(hciconfig))
+if [ -z "$hcist"]; then
+	hciconfig $hcino up
