@@ -71,7 +71,7 @@ def sdpbrowse(uid=None):
 def rfcommreg(rfcset,macid,alias,unick,commands,uid):
 	global reset
 	try:
-		output=subprocess.check_output(['%s %s %s' % (rfpath, str(macid), str(rfcset))], shell=True)
+		output=subprocess.check_output([rfpath,macid,rfcset], shell=True)
 		print '********************************************************************'
 		print output
 		print '********************************************************************'
@@ -82,7 +82,7 @@ def rfcommreg(rfcset,macid,alias,unick,commands,uid):
 		db.session.commit()
 		print "Error Binding RFCOMM Device"
 		reset = "y"
-		subprocess.check_output(['%s %s %s %s' % (rfpath, str(macid), str(rfcset), str(reset))], shell=True)
+		output=subprocess.check_output([rfpath,macid,rfcset,reset], shell=True)
 		reset = ""
 		print str(e)
 
@@ -106,7 +106,7 @@ def datasend(macid,alias,unick,commands,rfcset,uid):
 	for i in range(0,len(commands)):
 		print commands[i]
 	try:
-		output=subprocess.check_output(['%s %s %s %s' % (rfpath, str(macid), str(rfcset), str(reset))], shell=True)
+		output=subprocess.check_output([rfpath,macid,rfcset,reset], shell=True)
 		print '********************************************************************'
 		print output
 		print '********************************************************************'
@@ -123,7 +123,7 @@ def datasend(macid,alias,unick,commands,rfcset,uid):
 		robot.status="inactive"
 		reset = ""
 		db.session.commit()
-		subprocess.check_output(['%s %s %s %s' % (rfpath, str(macid), str(rfcset), str(reset))], shell=True)
+		output=subprocess.check_output([rfpath,macid,rfcset,reset], shell=True)
 		print str(e)
 
 def portsetup(commands):
