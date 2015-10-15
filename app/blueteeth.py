@@ -25,8 +25,10 @@ reset=""
 
 if _platform == "linux" or _platform == "linux2":
 	rfpath = os.path.join(bdir,"app","rfcommlin.sh")
+	host="lin"
 else:
 	rfpath = os.path.join(bdir,"app","rfcommwin.sh")
+	host="win"
 
 def leginquire():
 	global resp
@@ -71,10 +73,16 @@ def sdpbrowse(uid=None):
 def rfcommreg(rfcset,macid,alias,unick,commands,uid):
 	global reset
 	try:
-		output=subprocess.check_output([rfpath,macid,rfcset], shell=True)
-		print '********************************************************************'
-		print output
-		print '********************************************************************'
+		if (host=="win"):
+			output=subprocess.check_output([rfpath,macid,rfcset], shell=True)
+			print '********************************************************************'
+			print output
+			print '********************************************************************'
+		else:
+			output=subprocess.check_output(['%s %s %s' %(rfpath,macid,rfcset)], shell=True)
+			print '********************************************************************'
+			print output
+			print '********************************************************************'
 		datasend(macid,alias,unick,commands,rfcset,uid)
 	except Exception,e:
 		robot = Robot.query.filter_by(user_id=uid).first()
@@ -82,7 +90,10 @@ def rfcommreg(rfcset,macid,alias,unick,commands,uid):
 		db.session.commit()
 		print "Error Binding RFCOMM Device"
 		reset = "y"
-		output=subprocess.check_output([rfpath,macid,rfcset,reset], shell=True)
+		if (host=="win"):
+			output=subprocess.check_output([rfpath,macid,rfcset,reset], shell=True)
+		else:
+			output=subprocess.check_output(['%s %s %s %s' %(rfpath,macid,rfcset,reset)], shell=True)
 		reset = ""
 		print str(e)
 
@@ -106,14 +117,20 @@ def datasend(macid,alias,unick,commands,rfcset,uid):
 	for i in range(0,len(commands)):
 		print commands[i]
 	try:
-		output=subprocess.check_output([rfpath,macid,rfcset,reset], shell=True)
-		print '********************************************************************'
-		print output
-		print '********************************************************************'
+		if (host=="win"):
+			output=subprocess.check_output([rfpath,macid,rfcset,reset], shell=True)
+			print '********************************************************************'
+			print output
+			print '********************************************************************'
+		else:
+			output=subprocess.check_output(['%s %s %s %s' %(rfpath,macid,rfcset,reset)], shell=True)
+			print '********************************************************************'
+			print output
+			print '********************************************************************'
+		reset = ""
 		robot = Robot.query.filter_by(user_id=uid).first()
 		robots = Robot.query.all()
 		robot.status="inactive"
-		reset = ""
 		db.session.commit()
 		for rob in robots:
 			print "%s:%s" %(robot.alias,robot.status)
@@ -121,9 +138,7 @@ def datasend(macid,alias,unick,commands,rfcset,uid):
 		print "Error Releasing RFCOMM device!"
 		robot = Robot.query.filter_by(user_id=uid).first()
 		robot.status="inactive"
-		reset = ""
 		db.session.commit()
-		output=subprocess.check_output([rfpath,macid,rfcset,reset], shell=True)
 		print str(e)
 
 def portsetup(commands):
