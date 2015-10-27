@@ -70,32 +70,60 @@ def sdpbrowse(uid=None):
 	    print("    service id:  %s "% svc["service-id"])
 	    print()
 
-def rfcommreg(rfcset,macid,alias,unick,commands,uid):
+def rfcommbind(rfcset,macid,alias,unick,commands,uid,reset=None):
 	global reset
-	try:
-		if (host=="win"):
-			output=subprocess.check_output([rfpath,macid,rfcset], shell=True)
-			print '********************************************************************'
-			print output
-			print '********************************************************************'
-		else:
-			output=subprocess.check_output(['%s %s %s' %(rfpath,macid,rfcset)], shell=True)
-			print '********************************************************************'
-			print output
-			print '********************************************************************'
-		datasend(macid,alias,unick,commands,rfcset,uid)
-	except Exception,e:
-		robot = Robot.query.filter_by(user_id=uid).first()
-		robot.status="inactive"
-		db.session.commit()
-		print "Error Binding RFCOMM Device"
-		reset = "y"
-		if (host=="win"):
-			output=subprocess.check_output([rfpath,macid,rfcset,reset], shell=True)
-		else:
-			output=subprocess.check_output(['%s %s %s %s' %(rfpath,macid,rfcset,reset)], shell=True)
-		reset = ""
-		print str(e)
+	if reset is not None:
+		try:
+			if (host=="win"):
+				output=subprocess.check_output([rfpath,macid,rfcset], shell=True)
+				print '********************************************************************'
+				print output
+				print '********************************************************************'
+			else:
+				output=subprocess.check_output(['%s %s %s' %(rfpath,macid,rfcset)], shell=True)
+				print '********************************************************************'
+				print output
+				print '********************************************************************'
+			datasend(macid,alias,unick,commands,rfcset,uid)
+		except Exception,e:
+			robot = Robot.query.filter_by(user_id=uid).first()
+			robot.status="inactive"
+			db.session.commit()
+			print "Error Binding RFCOMM Device"
+			reset = "y"
+			if (host=="win"):
+				output=subprocess.check_output([rfpath,macid,rfcset,reset], shell=True)
+			else:
+				output=subprocess.check_output(['%s %s %s %s' %(rfpath,macid,rfcset,reset)], shell=True)
+			reset = ""
+			print str(e)
+	else:
+		try:
+			if (host=="win"):
+				output=subprocess.check_output([rfpath,macid,rfcset,reset], shell=True)
+				print '********************************************************************'
+				print output
+				print '********************************************************************'
+			else:
+				output=subprocess.check_output(['%s %s %s %s' %(rfpath,macid,rfcset,reset)], shell=True)
+				print '********************************************************************'
+				print output
+				print '********************************************************************'
+			reset = ""
+			robot = Robot.query.filter_by(user_id=uid).first()
+			robots = Robot.query.all()
+			robot.status="inactive"
+			db.session.commit()
+			for rob in robots:
+				print "%s:%s" %(robot.alias,robot.status)
+		except Exception,e:
+			print "Error Releasing RFCOMM device!"
+			robot = Robot.query.filter_by(user_id=uid).first()
+			robot.status="inactive"
+			db.session.commit()
+			print str(e)
+
+
 
 def datasend(macid,alias,unick,commands,rfcset,uid):
 	global reset
@@ -116,30 +144,7 @@ def datasend(macid,alias,unick,commands,rfcset,uid):
 	reset = "y"
 	for i in range(0,len(commands)):
 		print commands[i]
-	try:
-		if (host=="win"):
-			output=subprocess.check_output([rfpath,macid,rfcset,reset], shell=True)
-			print '********************************************************************'
-			print output
-			print '********************************************************************'
-		else:
-			output=subprocess.check_output(['%s %s %s %s' %(rfpath,macid,rfcset,reset)], shell=True)
-			print '********************************************************************'
-			print output
-			print '********************************************************************'
-		reset = ""
-		robot = Robot.query.filter_by(user_id=uid).first()
-		robots = Robot.query.all()
-		robot.status="inactive"
-		db.session.commit()
-		for rob in robots:
-			print "%s:%s" %(robot.alias,robot.status)
-	except Exception,e:
-		print "Error Releasing RFCOMM device!"
-		robot = Robot.query.filter_by(user_id=uid).first()
-		robot.status="inactive"
-		db.session.commit()
-		print str(e)
+	rfcommbind(rfpath,macid,rfcset,reset)
 
 def portsetup(commands):
 	Qflag = False
@@ -157,9 +162,10 @@ def portsetup(commands):
 			Qflag = False
 	if not Qflag:
 		rfcset = "rfcomm0"
+		rfcommset()
 		robot.status="active"
 		db.session.commit()
-		rfcommreg(rfcset,robot.macid,robot.alias,user.nickname,commands,user.id)
+		rfcommbind(rfcset,robot.macid,robot.alias,user.nickname,commands,user.id)
 	# sdpbrowse(robot.macid) # HC06 and HC05 bluetooth modules don't advertise an SDP interface. Uncomment if
 	# using a module that does. Bug number will be attached to this issue.
 
