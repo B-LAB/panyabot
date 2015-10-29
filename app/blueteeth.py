@@ -1,15 +1,16 @@
 import bluetooth
-from flask import json, g
-from sys import platform as _platform
 import os
-from datetime import datetime
-from app import app
 import time
-from app import db
-from app.models import User, Robot
 import serial
 import subprocess
 import panya
+import re
+from app import db
+from app.models import User, Robot
+from datetime import datetime
+from app import app
+from flask import json, g
+from sys import platform as _platform
 
 # Uncomment the following lines to enable BLE search
 # if _platform == "linux" or _platform == "linux2":
@@ -70,9 +71,9 @@ def sdpbrowse(uid=None):
 	    print("    service id:  %s "% svc["service-id"])
 	    print()
 
-def rfcommbind(rfcset,macid,alias,unick,commands,uid,reset=None):
+def rfcommbind(rfcset,macid,alias,unick,commands,uid,rst=None):
 	global reset
-	if reset is not None:
+	if reset is None:
 		try:
 			if (host=="win"):
 				output=subprocess.check_output([rfpath,macid,rfcset], shell=True)
@@ -98,6 +99,7 @@ def rfcommbind(rfcset,macid,alias,unick,commands,uid,reset=None):
 			reset = ""
 			print str(e)
 	else:
+		reset=rst
 		try:
 			if (host=="win"):
 				output=subprocess.check_output([rfpath,macid,rfcset,reset], shell=True)
@@ -123,8 +125,6 @@ def rfcommbind(rfcset,macid,alias,unick,commands,uid,reset=None):
 			db.session.commit()
 			print str(e)
 
-
-
 def datasend(macid,alias,unick,commands,rfcset,uid):
 	global reset
 	devport = "/dev/"
@@ -146,6 +146,34 @@ def datasend(macid,alias,unick,commands,rfcset,uid):
 		print commands[i]
 	rfcommbind(rfpath,macid,rfcset,reset)
 
+def rfcommset(robots):
+	prstlist={}
+	prstflag=False
+	for robot in robots:
+		if (robot.status!="inactive"):
+			prstcomm=re.search("rfcomm.",robot.status)
+			if prstcomm:
+				print 'Found %s registered to %s' %(prstcomm.group(),robot.alias)
+				devno=prstcomm.group().strip("rfcomm")
+				prstlist['robot.alias']=devno
+				prstflag=True
+			else:
+				print 'Possible error with status setting for %s' %(robot.alias)
+				print 'Resetting status value to inactive.'
+				robot.status="inactive"
+				db.session.commit()
+				prstflag=False
+	if prstflag:
+		for key, value in prstlist.iteritems():
+			maxval=value
+			if value>maxval:
+				maxval=value
+		setval=maxval+1
+	else:
+		setval=0
+	setcomm="rfcomm"+str(setval)
+	return setcomm
+
 def portsetup(commands):
 	Qflag = False
 	user = User.query.filter_by(nickname=g.user.nickname).first()
@@ -153,7 +181,7 @@ def portsetup(commands):
 	robots = Robot.query.all()
 	for rob in robots:
 		print "%s:%s" %(robot.alias,robot.status)
-		if (rob.status=="active"):
+		if (rob.status!="inactive"):
 			print "Queuing bluetooth upload"
 			Qflag = True
 			rfcset = "NULL"
@@ -161,9 +189,10 @@ def portsetup(commands):
 			# should come here
 			Qflag = False
 	if not Qflag:
-		rfcset = "rfcomm0"
-		rfcommset()
-		robot.status="active"
+		# rfcset = "rfcomm0"
+		# robot.status="active"
+		rfcset=rfcommset(robots)
+		robot.status=rfcset
 		db.session.commit()
 		rfcommbind(rfcset,robot.macid,robot.alias,user.nickname,commands,user.id)
 	# sdpbrowse(robot.macid) # HC06 and HC05 bluetooth modules don't advertise an SDP interface. Uncomment if
