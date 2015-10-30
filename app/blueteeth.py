@@ -71,9 +71,9 @@ def sdpbrowse(uid=None):
 	    print("    service id:  %s "% svc["service-id"])
 	    print()
 
-def rfcommbind(rfcset,macid,alias,unick,commands,uid,rst=None):
+def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,rst=None):
 	global reset
-	if reset is None:
+	if rst is None:
 		try:
 			if (host=="win"):
 				output=subprocess.check_output([rfpath,macid,rfcset], shell=True)
@@ -144,7 +144,7 @@ def datasend(macid,alias,unick,commands,rfcset,uid):
 	reset = "y"
 	for i in range(0,len(commands)):
 		print commands[i]
-	rfcommbind(rfpath,macid,rfcset,reset)
+	rfcommbind(rfcset,macid,None,None,None,uid,reset)
 
 def rfcommset(robots):
 	prstlist={}
