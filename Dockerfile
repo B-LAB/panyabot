@@ -19,7 +19,10 @@ RUN sudo apt-get update && apt-get install -y \
     python-bluez \
     nano \
     picocom \
-    arduino-mk
+    arduino-mk \
+    wget \
+    ca-certificates \
+    make
 
 # Set application directory tree
 COPY . /panyabot
