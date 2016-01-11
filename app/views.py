@@ -1,7 +1,7 @@
 from flask import render_template, url_for, request, g, flash, redirect, jsonify
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from app import app, db, login_manager, bcrypt
-from .blueteeth import leginquire, parseblocks
+from .serialcon import leginquire, parseblocks, sketchupl
 from .forms import LoginForm, RegistrationForm
 from .models import User, Robot
 
@@ -23,7 +23,7 @@ def user_loader(user_id):
 	return User.query.get(int(user_id))
 
 @app.route('/bluetooth', methods=['POST','GET'])
-def blue():
+def bluetooth():
 	if request.method == 'POST':
 		parseblocks(request.json['panya'])
 		return jsonify({'status':'OK'})
@@ -31,6 +31,17 @@ def blue():
 		return jsonify({
 		'devices': leginquire()
 		})
+
+@app.route('/reset')
+def reset():
+	user = g.user
+	robot = Robot.query.filter_by(user_id=user.id).first()
+	if sketchupl('blink'):
+		flash(str(robot.alias)+' has been reset!')
+	else:
+		flash(str(robot.alias)+' reset failed!')
+	return render_template('home.html', title='Home', user=user, robot=robot)
+
 
 @app.route('/register', methods=['GET','POST'])
 def register():
@@ -87,10 +98,12 @@ def logout():
 @login_required
 def home():
 	user = g.user
-	return render_template('home.html', title='Home', user=user)
+	robot = Robot.query.filter_by(user_id=user.id).first()
+	return render_template('home.html', title='Home', user=user, robot=robot)
 
 @app.route('/blockly')
 @login_required
 def blockly():
 	user = g.user
-	return render_template('blockly.html', title='Blockly', user=user)
+	robot = Robot.query.filter_by(user_id=user.id).first()
+	return render_template('blockly.html', title='Blockly', user=user, robot=robot)

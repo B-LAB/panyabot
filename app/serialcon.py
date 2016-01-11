@@ -1,4 +1,4 @@
-import bluetooth
+# import bluetooth
 import os
 import time
 import serial
@@ -30,12 +30,31 @@ reset=""
 # determine which platform this app package is running on and set the
 # required shell/bash script paths. these scripts manage all the
 # hosts bluetooth pairing and device tree attaching with the robots.
-if _platform == "linux" or _platform == "linux2":
+if _platform == "linux" or _platform == "linux2" or _platform == "darwin":
 	rfpath = os.path.join(bdir,"app","rfcommlin.sh")
 	host="lin"
 else:
 	rfpath = os.path.join(bdir,"app","rfcommwin.sh")
 	host="win"
+
+def sketchupl(sketchfile):
+	try:
+		if (host=="win"):
+			output=subprocess.check_output([rfpath,"","","",sketchfile], shell=True)
+			print '********************************************************************'
+			print output
+			print '********************************************************************'
+		else:
+			output=subprocess.check_output(['%s %s %s %s %s' %(rfpath,"","","",sketchfile)], shell=True)
+			print '********************************************************************'
+			print output
+			print '********************************************************************'
+		return True
+	except Exception,e:
+		print "USB reset of robot failed"
+		print str(e)
+		return False
+
 
 def leginquire():
 	# bluetooth legacy discovery api endpoint. This endpoint is used by the
