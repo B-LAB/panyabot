@@ -42,38 +42,18 @@ else:
 
 def sketchupl(sketchpath):
 	if os.path.exists(sketchpath):
-		sketchfile=os.path.basename(sketchpath)
-		sketchmkpath=os.path.join(os.path.dirname(sketchpath),"Makefile")
-		if os.path.exists(sketchmkpath):
-			cpmake=False
-			print str(sketchmkpath) + " already present"
-		else:
-			cpmake=True
-			print str(sketchmkpath) + " doesn't exist!"
-			print "Perfoming makefile file relocation"
+		pass
 	try:
 		if (host=="win"):
-			if cpmake:
-				output=subprocess.check_output([rfpath,"","","",host,sketchfile,sketchmkpath], shell=True)
-				print '********************************************************************'
-				print output
-				print '********************************************************************'
-			else:
-				output=subprocess.check_output([rfpath,"","","",host,sketchfile], shell=True)
-				print '********************************************************************'
-				print output
-				print '********************************************************************'
+			output=subprocess.check_output([rfpath,"","","",host,sketchpath], shell=True)
+			print '********************************************************************'
+			print output
+			print '********************************************************************'
 		else:
-			if cpmake:
-				output=subprocess.check_output(['%s %s %s %s %s %s %s' %(rfpath,"","","",host,sketchfile,sketchmkpath)], shell=True)
-				print '********************************************************************'
-				print output
-				print '********************************************************************'
-			else:
-				output=subprocess.check_output(['%s %s %s %s %s %s' %(rfpath,"","","",host,sketchfile)], shell=True)
-				print '********************************************************************'
-				print output
-				print '********************************************************************'
+			output=subprocess.check_output(['%s %s %s %s %s %s' %(rfpath,"","","",host,sketchpath)], shell=True)
+			print '********************************************************************'
+			print output
+			print '********************************************************************'
 		return True
 	except Exception,e:
 		print "USB reset of robot failed"

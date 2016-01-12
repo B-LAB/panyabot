@@ -34,7 +34,7 @@ RUN pip install virtualenv
 RUN virtualenv flask --system-site-packages
 RUN flask/bin/pip install -r requirements.txt
 RUN chmod 755 run.sh
-RUN chmod 755 app/rfcommlin.sh
+RUN chmod 755 app/hostcon.sh
 
 # Expose ports
 EXPOSE 5000

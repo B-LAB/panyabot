@@ -1,4 +1,4 @@
-/*
+  /*
   Blink
   Turns on an LED on for one second, then off for one second, repeatedly.
 
@@ -11,7 +11,7 @@
 
   modified 8 May 2014
   by Scott Fitzgerald
- */
+  */
 
 
 // the setup function runs once when you press reset or power the board

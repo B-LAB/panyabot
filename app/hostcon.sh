@@ -16,11 +16,26 @@ if [ "{$args[3]}"=="lin" ] || [ "{$args[3]}"=="darwin" ]; then
 	# conditional to determine if the current subprocess call is to reset or connect/release
 	# a robot
 	if [ ! -z "{$args[4]}" ]; then
+		if [ "{$args[3]}"=="darwin" ]; then
+			export ARDUINO_DIR=/Applications/Arduino.app/Contents/Java
+			export ARDMK_DIR=$(pwd)/Makefile
+			export AVR_TOOLS_DIR=/usr
+			export MONITOR_PORT=/dev/ttyACM0
+			export BOARD_TAG=uno
+		else
+			export ARDUINO_DIR=/usr/share/arduino
+			export ARDMK_DIR=$(pwd)/Makefile
+			export BOARD=uno
+		fi
 		# begin sketch upload process!
-		export BOARD=uno
-		export ARDUINO_DIR=/usr/share/arduino
+		skpath=$(pwd)/${args[1]}
 		# NOTE:the bash conditional truncates the index to 0
-		echo "Trying to upload" ${args[1]} "sketch"
+		echo "Trying to upload $skpath with $ARDMK_DIR"
+		cd ${skpath%/*}
+		# make
+		# http://superuser.com/questions/443859/separate-file-and-path-in-bash
+		# make -f $ARDMK_DIR -C "${skpath%/*}"
+
 	else
 		# conditional to determine if the reset flag has been set. if true, passed macid
 		# is flushed; if false, passed macid is paired to and bound to given rfcomm port.
