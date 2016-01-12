@@ -30,25 +30,50 @@ reset=""
 # determine which platform this app package is running on and set the
 # required shell/bash script paths. these scripts manage all the
 # hosts bluetooth pairing and device tree attaching with the robots.
-if _platform == "linux" or _platform == "linux2" or _platform == "darwin":
-	rfpath = os.path.join(bdir,"app","rfcommlin.sh")
+rfpath = os.path.join(bdir,"app","hostcon.sh")
+if _platform == "linux" or _platform == "linux2":
+	import bluetooth
 	host="lin"
+elif _platform == "darwin":
+	host="darwin"
 else:
-	rfpath = os.path.join(bdir,"app","rfcommwin.sh")
+	import bluetooth
 	host="win"
 
-def sketchupl(sketchfile):
+def sketchupl(sketchpath):
+	if os.path.exists(sketchpath):
+		sketchfile=os.path.basename(sketchpath)
+		sketchmkpath=os.path.join(os.path.dirname(sketchpath),"Makefile")
+		if os.path.exists(sketchmkpath):
+			cpmake=False
+			print str(sketchmkpath) + " already present"
+		else:
+			cpmake=True
+			print str(sketchmkpath) + " doesn't exist!"
+			print "Perfoming makefile file relocation"
 	try:
 		if (host=="win"):
-			output=subprocess.check_output([rfpath,"","","",sketchfile], shell=True)
-			print '********************************************************************'
-			print output
-			print '********************************************************************'
+			if cpmake:
+				output=subprocess.check_output([rfpath,"","","",host,sketchfile,sketchmkpath], shell=True)
+				print '********************************************************************'
+				print output
+				print '********************************************************************'
+			else:
+				output=subprocess.check_output([rfpath,"","","",host,sketchfile], shell=True)
+				print '********************************************************************'
+				print output
+				print '********************************************************************'
 		else:
-			output=subprocess.check_output(['%s %s %s %s %s' %(rfpath,"","","",sketchfile)], shell=True)
-			print '********************************************************************'
-			print output
-			print '********************************************************************'
+			if cpmake:
+				output=subprocess.check_output(['%s %s %s %s %s %s %s' %(rfpath,"","","",host,sketchfile,sketchmkpath)], shell=True)
+				print '********************************************************************'
+				print output
+				print '********************************************************************'
+			else:
+				output=subprocess.check_output(['%s %s %s %s %s %s' %(rfpath,"","","",host,sketchfile)], shell=True)
+				print '********************************************************************'
+				print output
+				print '********************************************************************'
 		return True
 	except Exception,e:
 		print "USB reset of robot failed"
@@ -116,12 +141,12 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,rst=Non
 	if rst is None:
 		try:
 			if (host=="win"):
-				output=subprocess.check_output([rfpath,macid,rfcset], shell=True)
+				output=subprocess.check_output([rfpath,macid,rfcset,"",host], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
 			else:
-				output=subprocess.check_output(['%s %s %s' %(rfpath,macid,rfcset)], shell=True)
+				output=subprocess.check_output(['%s %s %s' %(rfpath,macid,rfcset,"",host)], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
@@ -137,21 +162,21 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,rst=Non
 			print "Error Binding RFCOMM Device"
 			reset = "y"
 			if (host=="win"):
-				output=subprocess.check_output([rfpath,macid,rfcset,reset], shell=True)
+				output=subprocess.check_output([rfpath,macid,rfcset,reset,host], shell=True)
 			else:
-				output=subprocess.check_output(['%s %s %s %s' %(rfpath,macid,rfcset,reset)], shell=True)
+				output=subprocess.check_output(['%s %s %s %s' %(rfpath,macid,rfcset,reset,host)], shell=True)
 			reset = ""
 			print str(e)
 	else:
 		reset=rst
 		try:
 			if (host=="win"):
-				output=subprocess.check_output([rfpath,macid,rfcset,reset], shell=True)
+				output=subprocess.check_output([rfpath,macid,rfcset,reset,host], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
 			else:
-				output=subprocess.check_output(['%s %s %s %s' %(rfpath,macid,rfcset,reset)], shell=True)
+				output=subprocess.check_output(['%s %s %s %s' %(rfpath,macid,rfcset,reset,host)], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
