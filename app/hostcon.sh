@@ -73,7 +73,7 @@ if [ "$interactive" = "1" ]; then
 	fi
 fi
 
-echo -n "$host:$uid:$devassgn:$skpath:$reset"
+echo -n "host=$host:uid=$uid:dev=$devassgn:skpath=$skpath:reset=$reset:flush=$flush:interactive=$interactive"
 echo ""
 
 if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
@@ -188,4 +188,7 @@ else
 	# you can access these args using this format: ${arg[x]} with zero indexing
 	# Currently this must always run from a CLI interface with bash scripting capabilities e.g. Git, Cygwin
 	echo "Setting up RFCOMM bind for $uid on x86 host"
+	echo -n "host=$host:uid=$uid:dev=$devassgn:skpath=$skpath:reset=$reset:flush=$flush:interactive=$interactive"
+	echo ""
+	sleep 3
 fi

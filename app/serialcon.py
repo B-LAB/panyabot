@@ -45,7 +45,7 @@ def sketchupl(sketchpath):
 		pass
 	try:
 		if (host=="win"):
-			# output=subprocess.check_output([rfpath,-H host,-s sketchpath], shell=True)
+			output=subprocess.check_output([rfpath,'-H',host,'-s',sketchpath], shell=True)
 			print '********************************************************************'
 			print output
 			print '********************************************************************'
@@ -121,7 +121,7 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,rst=Non
 	if rst is None:
 		try:
 			if (host=="win"):
-				# output=subprocess.check_output([rfpath,-u macid,-d rfcset,-H host], shell=True)
+				output=subprocess.check_output([rfpath,'-u',macid,'-d',rfcset,'-H',host], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
@@ -141,7 +141,7 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,rst=Non
 			db.session.commit()
 			print "Error Binding RFCOMM Device"
 			if (host=="win"):
-				# output=subprocess.check_output([rfpath,-u macid,-d rfcset,-r,-H host], shell=True)
+				output=subprocess.check_output([rfpath,'-u',macid,'-d',rfcset,'-f','-H',host], shell=True)
 				pass
 			else:
 				output=subprocess.check_output(['%s -u %s -d %s -f -H %s' %(rfpath,macid,rfcset,host)], shell=True)
@@ -149,7 +149,7 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,rst=Non
 	else:
 		try:
 			if (host=="win"):
-				# output=subprocess.check_output([rfpath,-u macid,-d rfcset,-r,-H host], shell=True)
+				output=subprocess.check_output([rfpath,'-u',macid,'-d',rfcset,'-f','-H',host], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
