@@ -1,10 +1,85 @@
 #!/bin/bash
-args=("$@")
-# NOTE: $@ is a special array used to store bash command line arguments
-# you can access these args using this format: ${arg[x]} with zero indexing
+# Major revision of host-slave connection on *nix/x86 platforms
+# Based on positional parameters (http://linuxcommand.org/wss0130.php)
 
-if [ "{$args[3]}"=="lin" ] || [ "{$args[3]}"=="darwin" ]; then
+interactive=
+flash=
+reset=
+host="linux"
+
+while [ "$1" != "" ]; do
+	case $1 in
+		-H | --host )			shift
+								host=$1
+								;;
+		-u | --uid )			shift
+								uid=$1
+								;;
+		-d | --dev )			shift
+								devassgn=$1
+								;;
+		-s | --sketchpath )		shift
+								skpath=$1
+								;;
+		-r | --reset )			reset=1
+								;;
+		-f | --flush )			flush=1
+								;;
+		-i | --interactive )	interactive=1
+								;;
+	esac
+	shift
+done
+
+if [ "$interactive" = "1" ]; then
+	echo -n "Enter host platform [$host] > "
+	read response
+	if [ -n "$response" ]; then
+		host=$response
+	fi
+
+	echo -n "Enter robot uid > "
+	read response
+	if [ -n "$response" ]; then
+		uid=$response
+	fi
+
+	echo -n "Enter dev device assignment > "
+	read response
+	if [ -n "$response" ]; then
+		devassgn=$response
+	fi
+
+	echo -n "Enter sketch filepath > "
+	read response
+	if [ -n "$response" ]; then
+		skpath=$response
+	fi
+
+	echo -n "Would you like to reset $uid firmware? (y/n) >"
+	read response
+	if [ "$response" = "y" ]; then
+		reset=1
+		echo -n "Will upload default firmware to $uid."
+		echo ""
+	fi
+
+	echo -n "Would you like to flush device? (y/n) >"
+	read response
+	if [ "$response" = "y" ]; then
+		reset=1
+		echo -n "Will flush $uid from $devassgn."
+		echo ""
+	fi
+fi
+
+echo -n "$host:$uid:$devassgn:$skpath:$reset"
+echo ""
+
+if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
+	# determine the hci number
 	hcino=$(grep -o "hci." <<< $(hciconfig))
+	# determine the state of the attached hci device
 	hcist=$(grep -o "down" <<< $(hciconfig))
 
 	# conditional to check that the hci device is not down
@@ -15,8 +90,8 @@ if [ "{$args[3]}"=="lin" ] || [ "{$args[3]}"=="darwin" ]; then
 	fi
 	# conditional to determine if the current subprocess call is to reset or connect/release
 	# a robot
-	if [ ! -z "{$args[4]}" ]; then
-		if [ "{$args[3]}"=="darwin" ]; then
+	if [ "$reset" = "1"  ]; then
+		if [ "$host"=="darwin" ]; then
 			export ARDUINO_DIR=/Applications/Arduino.app/Contents/Java
 			export ARDMK_DIR=$(pwd)/Makefile
 			export AVR_TOOLS_DIR=/usr
@@ -28,8 +103,6 @@ if [ "{$args[3]}"=="lin" ] || [ "{$args[3]}"=="darwin" ]; then
 			export BOARD=uno
 		fi
 		# begin sketch upload process!
-		skpath=$(pwd)/${args[1]}
-		# NOTE:the bash conditional truncates the index to 0
 		echo "Trying to upload $skpath with $ARDMK_DIR"
 		cd ${skpath%/*}
 		# make
@@ -39,7 +112,7 @@ if [ "{$args[3]}"=="lin" ] || [ "{$args[3]}"=="darwin" ]; then
 	else
 		# conditional to determine if the reset flag has been set. if true, passed macid
 		# is flushed; if false, passed macid is paired to and bound to given rfcomm port.
-		if [ -z "${args[2]}" ]; then
+		if [ "$flush" = "" ]; then
 			# begin pairing and binding process!
 			# restart systemd dbus and bluetooth services as a fail safe check
 			service dbus restart
@@ -49,63 +122,63 @@ if [ "{$args[3]}"=="lin" ] || [ "{$args[3]}"=="darwin" ]; then
 			if [ -z "$hcist"]; then
 				hciconfig $hcino up
 			fi
-			echo "Setting up RFCOMM bind for" ${args[0]} "on *NIX host"
+			echo "Setting up RFCOMM bind for $uid on *NIX host"
 			
 			# bluetooth ping(ONCE) the passed macid variable to confirm it's up
-			if l2ping ${args[0]} -c 1; then
+			if l2ping "$uid" -c 1; then
 				# devfind conditional checks if submitted UID is already registered on rfcomm,
 				# if not it pairs to and binds the passed macid variable
-				devfind=$(grep -o ${args[0]} <<< $(rfcomm))
+				devfind=$(grep -o $uid <<< $(rfcomm))
 				if [ -z "$devfind" ]; then
 					# pair to the passed macid variable.
 					# NOTE: Perhaps I should check linkkeys if device has already been
 					# paired to?
-					echo 1234 | bluez-simple-agent $hcino ${args[0]}
-					# rfchck conditional checks if the passed macid variable has already been
+					echo 1234 | bluez-simple-agent $hcino $uid
+					# rfchck conditional checks if the passed dev device has already been
 					# bound. It releases and binds the passed macid if it has.
-					rfchck=$(grep -o ${args[1]} <<< $(rfcomm))
+					rfchck=$(grep -o $devassgn <<< $(rfcomm))
 					if [ -z "$rfchck" ]; then
 						# bind the passed macid to the assigned rfcomm port on channel 1
-						rfcomm bind "/dev/"${args[1]} ${args[0]} 1
+						rfcomm bind "/dev/"$devassgn $uid 1
 					else
-						rfcomm release "/dev/"${args[1]}
-						rfcomm bind "/dev/"${args[1]} ${args[0]} 1
+						rfcomm release "/dev/"$devassgn
+						rfcomm bind "/dev/"$devassgn $uid 1
 					fi
-					echo "rfport:" ${args[1]}
+					echo "Dev device assigned:" $devassgn
 				else
 					# rfport searches for the bound rfcomm port number e.g. /dev/rfcomm(?)
-					echo $(hcitool name ${args[0]}) "already bound"
+					echo $(hcitool name $uid) "already bound"
 					rfport=$(grep -o 'rfcomm.' <<< $(rfcomm))
-					echo "rfport: /dev/"$rfport
+					echo "Dev device assigned:: /dev/"$rfport
 				fi
 				rfcomm
 			else
 				# bluetooth ping failed to find passed macid
 				rfport="NULL"
-				echo "rfport:" $rfport
-				echo ${args[0]} "not found"
+				echo "$uid not found"
+				echo -n "Ensure device is on and within range"
 			fi
 		else
 			# begin flushing process!
 			# conditionals that ensure robust flushing if errors are found
-			echo "Setting up RFCOMM release for" ${args[0]} "on *NIX host"
-			rfchck=$(grep -o ${args[1]} <<< $(rfcomm))
+			echo "Setting up RFCOMM release for $uid on *NIX host"
+			rfchck=$(grep -o $devassgn <<< $(rfcomm))
 			if [ -z "$rfchck" ]; then
-				echo "Rfcomm port" ${args[1]} "not previously attached"
+				echo "Dev device $devassgn not previously attached"
 			else
-				rfcomm release "/dev/"${args[1]}
-				echo "Rfcomm port" ${args[1]} "released, rfcomm output:" $(rfcomm)
+				rfcomm release "/dev/"$devassgn
+				echo "Dev device $devassgn released, rfcomm output:" $(rfcomm)
 			fi
 			hciuid=$(grep -o "..:..:..:..:..:.." <<< $(hciconfig))
 			if [ -z "$hciuid" ]; then
-				echo "no host bluetooth device found"
+				echo "no host bluetooth hci found"
 			else
 				keychck=$(grep -o ${args[0]} <<< $(cat /var/lib/bluetooth/$hciuid/linkkeys))
 				if [ -z "$keychck" ]; then
-					echo ${args[0]} "not previously paired"
+					echo "$uid not previously paired"
 				else
-					bluez-test-device remove ${args[0]}
-					echo ${args[0]} "unpaired"
+					bluez-test-device remove $uid
+					echo $uid "unpaired"
 				fi
 			fi
 		fi
@@ -114,6 +187,5 @@ else
 	# $@ is a special array used to store bash command line arguments
 	# you can access these args using this format: ${arg[x]} with zero indexing
 	# Currently this must always run from a CLI interface with bash scripting capabilities e.g. Git, Cygwin
-	echo "Setting up RFCOMM bind for" ${args[0]} "on x86 host"
+	echo "Setting up RFCOMM bind for $uid on x86 host"
 fi
-	

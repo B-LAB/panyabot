@@ -45,12 +45,12 @@ def sketchupl(sketchpath):
 		pass
 	try:
 		if (host=="win"):
-			output=subprocess.check_output([rfpath,"","","",host,sketchpath], shell=True)
+			# output=subprocess.check_output([rfpath,-H host,-s sketchpath], shell=True)
 			print '********************************************************************'
 			print output
 			print '********************************************************************'
 		else:
-			output=subprocess.check_output(['%s %s %s %s %s %s' %(rfpath,"","","",host,sketchpath)], shell=True)
+			output=subprocess.check_output(['%s -H %s -s %s -r' %(rfpath,host,sketchpath)], shell=True)
 			print '********************************************************************'
 			print output
 			print '********************************************************************'
@@ -121,12 +121,12 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,rst=Non
 	if rst is None:
 		try:
 			if (host=="win"):
-				output=subprocess.check_output([rfpath,macid,rfcset,"",host], shell=True)
+				# output=subprocess.check_output([rfpath,-u macid,-d rfcset,-H host], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
 			else:
-				output=subprocess.check_output(['%s %s %s' %(rfpath,macid,rfcset,"",host)], shell=True)
+				output=subprocess.check_output(['%s -u %s -d %s -H %s' %(rfpath,macid,rfcset,host)], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
@@ -140,23 +140,21 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,rst=Non
 			robot.status="inactive"
 			db.session.commit()
 			print "Error Binding RFCOMM Device"
-			reset = "y"
 			if (host=="win"):
-				output=subprocess.check_output([rfpath,macid,rfcset,reset,host], shell=True)
+				# output=subprocess.check_output([rfpath,-u macid,-d rfcset,-r,-H host], shell=True)
+				pass
 			else:
-				output=subprocess.check_output(['%s %s %s %s' %(rfpath,macid,rfcset,reset,host)], shell=True)
-			reset = ""
+				output=subprocess.check_output(['%s -u %s -d %s -f -H %s' %(rfpath,macid,rfcset,host)], shell=True)
 			print str(e)
 	else:
-		reset=rst
 		try:
 			if (host=="win"):
-				output=subprocess.check_output([rfpath,macid,rfcset,reset,host], shell=True)
+				# output=subprocess.check_output([rfpath,-u macid,-d rfcset,-r,-H host], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
 			else:
-				output=subprocess.check_output(['%s %s %s %s' %(rfpath,macid,rfcset,reset,host)], shell=True)
+				output=subprocess.check_output(['%s -u %s -d %s -f -H %s' %(rfpath,macid,rfcset,host)], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'

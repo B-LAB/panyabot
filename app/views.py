@@ -42,7 +42,6 @@ def reset():
 		flash(str(robot.alias)+' reset failed!')
 	return render_template('home.html', title='Home', user=user, robot=robot)
 
-
 @app.route('/register', methods=['GET','POST'])
 def register():
 	form = RegistrationForm()
