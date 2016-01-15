@@ -91,8 +91,10 @@ if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
 	# conditional to determine if the current subprocess call is to reset or connect/release
 	# a robot
 	if [ "$reset" = "1"  ]; then
+		echo "Will attempt to upload $skpath with $ARDMK_DIR"
 		if [ "$host"=="darwin" ]; then
-			export ARDUINO_DIR=/Applications/Arduino.app/Contents/Java
+			# export ARDUINO_DIR=/Applications/Arduino.app/Contents/Java
+			export ARDUINO_DIR=/Applications/Arduino.app/Contents/MacOS/
 			export ARDMK_DIR=$(pwd)/Makefile
 			export AVR_TOOLS_DIR=/usr
 			export MONITOR_PORT=/dev/ttyACM0
@@ -101,9 +103,22 @@ if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
 			export ARDUINO_DIR=/usr/share/arduino
 			export ARDMK_DIR=$(pwd)/Makefile
 			export BOARD=uno
+
+			# determine if device dev paths have been assigned to any USB serial devices
+			# devs contains the device dev paths that matched
+			# devnos contains the number of devices that matched
+			devs=($(find -name "ttyACM*" | grep 'devices'))
+			devnos=${#devs[@]}
+			if [ '$devnos'!=0 ]; then
+				for dev in ${devs[@]}; do
+					echo $target
+					if [ "$udevadm info -a -p $target | $grep Arduino" ]; then
+					fi
+				done
+			fi
 		fi
 		# begin sketch upload process!
-		echo "Trying to upload $skpath with $ARDMK_DIR"
+		
 		cd ${skpath%/*}
 		# make
 		# http://superuser.com/questions/443859/separate-file-and-path-in-bash
