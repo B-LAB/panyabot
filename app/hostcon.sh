@@ -111,8 +111,18 @@ if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
 			devnos=${#devs[@]}
 			if [ '$devnos'!=0 ]; then
 				for dev in ${devs[@]}; do
-					echo $target
-					if [ "$udevadm info -a -p $target | $grep Arduino" ]; then
+					if [ "$udevadm info -a -p $dev | $grep Arduino" ]; then
+						target=/dev/$(echo $dev | grep -o ttyACM.)
+						echo $target " will be reset now"
+						export SERIALDEV=$target
+						export ARDUINO_PORT=$target
+						make -c $skpath upload
+						# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
+						if [ "$$?" = 0 ]; then 
+							echo "Sketch upload successful";
+						else
+							echo "A problem occured while uploading sketch";
+						fi
 					fi
 				done
 			fi

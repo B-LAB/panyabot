@@ -36,7 +36,7 @@ def bluetooth():
 def reset():
 	user = g.user
 	robot = Robot.query.filter_by(user_id=user.id).first()
-	if sketchupl('sketches/Blink/Blink.ino'):
+	if sketchupl('/panyabot/sketches/Blink/Blink.ino'):
 		flash(str(robot.alias)+' has been reset!')
 	else:
 		flash(str(robot.alias)+' reset failed!')
