@@ -38,7 +38,7 @@ reset=""
 rfpath = os.path.join(bdir,"app","hostcon.sh")
 if _platform == "linux" or _platform == "linux2":
 	import bluetooth
-	host="lin"
+	host="linux"
 elif _platform == "darwin":
 	host="darwin"
 else:
@@ -50,12 +50,12 @@ def sketchupl(sketchpath):
 		pass
 	try:
 		if (host=="win"):
-			output=subprocess.check_call([rfpath,'-H',host,'-s',sketchpath], shell=True)
+			output=subprocess.call([rfpath,'-H',host,'-s',sketchpath], shell=True)
 			print '********************************************************************'
 			print output
 			print '********************************************************************'
 		else:
-			output=subprocess.check_call(['%s -H %s -s %s -r' %(rfpath,host,sketchpath)], shell=True)
+			output=subprocess.call(['%s -H %s -s %s -r' %(rfpath,host,sketchpath)], shell=True)
 			print '********************************************************************'
 			print output
 			print '********************************************************************'
@@ -126,12 +126,12 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,rst=Non
 	if rst is None:
 		try:
 			if (host=="win"):
-				output=subprocess.check_call([rfpath,'-u',macid,'-d',rfcset,'-H',host], shell=True)
+				output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-H',host], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
 			else:
-				output=subprocess.check_call(['%s -u %s -d %s -H %s' %(rfpath,macid,rfcset,host)], shell=True)
+				output=subprocess.call(['%s -u %s -d %s -H %s' %(rfpath,macid,rfcset,host)], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
@@ -146,20 +146,20 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,rst=Non
 			db.session.commit()
 			print "Error Binding RFCOMM Device"
 			if (host=="win"):
-				output=subprocess.check_call([rfpath,'-u',macid,'-d',rfcset,'-f','-H',host], shell=True)
+				output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-f','-H',host], shell=True)
 				pass
 			else:
-				output=subprocess.check_call(['%s -u %s -d %s -f -H %s' %(rfpath,macid,rfcset,host)], shell=True)
+				output=subprocess.call(['%s -u %s -d %s -f -H %s' %(rfpath,macid,rfcset,host)], shell=True)
 			print str(e)
 	else:
 		try:
 			if (host=="win"):
-				output=subprocess.check_call([rfpath,'-u',macid,'-d',rfcset,'-f','-H',host], shell=True)
+				output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-f','-H',host], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
 			else:
-				output=subprocess.check_call(['%s -u %s -d %s -f -H %s' %(rfpath,macid,rfcset,host)], shell=True)
+				output=subprocess.call(['%s -u %s -d %s -f -H %s' %(rfpath,macid,rfcset,host)], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'

@@ -5,7 +5,7 @@
 interactive=
 flash=
 reset=
-host="lin"
+host="linux"
 
 while [ "$1" != "" ]; do
 	case $1 in
@@ -76,7 +76,7 @@ fi
 echo -n "host=$host:uid=$uid:dev=$devassgn:skpath=$skpath:reset=$reset:flush=$flush:interactive=$interactive"
 echo ""
 
-if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
+if [ "$host" = "linux" ] || [ "$host" = "darwin" ]; then
 	# conditional to determine if the current subprocess call is to reset or connect/release
 	# a robot
 	if [ "$reset" = "1"  ]; then
@@ -93,9 +93,9 @@ if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
 			# determine if device dev paths have been assigned to any USB serial devices
 			# devs contains the device dev paths that matched
 			# devnos contains the number of devices that matched
-			devpaths=($(find -name "ttyACM*" | grep devices))
+			devpaths=($(find /sys -name "ttyACM*" | grep devices))
 			devnum=${#devpaths[@]}
-			echo "Number of Dev paths found: $denvum"
+			echo "Number of Dev paths found: "$denvum
 			if [ "$devnum" != 0 ]; then
 				for dev in ${devpaths[@]}; do
 					echo "Checking: $dev"
@@ -150,7 +150,6 @@ if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
 				hciconfig $hcinum up
 			fi
 			echo "Setting up RFCOMM bind for $uid on *NIX host"
-			
 			# bluetooth ping(ONCE) the passed macid variable to confirm it's up
 			if l2ping "$uid" -c 1; then
 				# devfind conditional checks if submitted UID is already registered on rfcomm,
@@ -182,6 +181,7 @@ if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
 						else
 							echo "Rfcomm binding was not successful"
 							exit 4
+						fi
 					else
 						rfcomm release "/dev/$devassgn"
 						exstat=$?
@@ -191,6 +191,7 @@ if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
 						else
 							echo "Rfcomm release was not successful"
 							exit 5
+						fi
 						rfcomm bind "/dev/$devassgn $uid 1"
 						exstat=$?
 						# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
@@ -199,6 +200,7 @@ if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
 						else
 							echo "Rfcomm binding was not successful"
 							exit 4
+						fi
 					fi
 					echo "Dev device assigned: $devassgn"
 				else
@@ -232,6 +234,7 @@ if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
 				else
 					echo "Rfcomm release was not successful"
 					exit 5
+				fi
 			fi
 			hciuid=$(hciconfig | grep -o ..:..:..:..:..:..)
 			if [ -z "$hciuid" ]; then
@@ -249,7 +252,8 @@ if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
 						echo "$uid successfully unpaired"
 					else
 						echo "unpairing $uid failed"
-						exit 8	
+						exit 8
+					fi
 				fi
 				exit 0
 			fi
