@@ -5,7 +5,7 @@
 interactive=
 flash=
 reset=
-host="linux"
+host="lin"
 
 while [ "$1" != "" ]; do
 	case $1 in
@@ -78,21 +78,26 @@ echo ""
 
 if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
 	# determine the hci number
-	hcino=$(grep -o "hci." <<< $(hciconfig))
-	# determine the state of the attached hci device
-	hcist=$(grep -o "down" <<< $(hciconfig))
-
+	hcinum=$(hciconfig | grep -o hci.)
 	# conditional to check that the hci device is not down
 	# NOTE: -z is an empty/unset variable check that returns true if variable isn't set
 	# alternatively, -n checks if a variable is non-empty/set and returns True if it is
-	if [ -z "$hcist"]; then
-		hciconfig $hcino up
+	if [ ! -z "$hcinum"];then
+		echo "Found $hcinum"
+		echo "Will now reset $hcinum"
+		echo "$(hciconfig)"
+		hciconfig -a $hcinum reset
+		echo "$(hciconfig)"
+	else
+		echo "No HCI device found"
+		exit 1
 	fi
+
+	
 	# conditional to determine if the current subprocess call is to reset or connect/release
 	# a robot
 	if [ "$reset" = "1"  ]; then
-		echo "Will attempt to upload $skpath with $ARDMK_DIR"
-		if [ "$host"=="darwin" ]; then
+		if [ "$host" = "darwin" ]; then
 			# export ARDUINO_DIR=/Applications/Arduino.app/Contents/Java
 			export ARDUINO_DIR=/Applications/Arduino.app/Contents/MacOS/
 			export ARDMK_DIR=$(pwd)/Makefile
@@ -101,51 +106,48 @@ if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
 			export BOARD_TAG=uno
 		else
 			export ARDUINO_DIR=/usr/share/arduino
-			export ARDMK_DIR=$(pwd)/Makefile
 			export BOARD=uno
-
 			# determine if device dev paths have been assigned to any USB serial devices
 			# devs contains the device dev paths that matched
 			# devnos contains the number of devices that matched
-			devs=($(find -name "ttyACM*" | grep 'devices'))
-			devnos=${#devs[@]}
-			if [ '$devnos'!=0 ]; then
-				for dev in ${devs[@]}; do
-					if [ "$udevadm info -a -p $dev | $grep Arduino" ]; then
+			devpaths=($(find -name "ttyACM*" | grep devices))
+			devnum=${#devpaths[@]}
+			echo "Number of Dev paths found: $denvum"
+			if [ "$devnum" != 0 ]; then
+				for dev in ${devpaths[@]}; do
+					echo "Checking: $dev"
+					ardcheck=$(udevadm info -a -p ${dev#./sys} | grep Arduino)
+					if [ ! -z "$ardcheck" ]; then
+						echo "Arduino found"
 						target=/dev/$(echo $dev | grep -o ttyACM.)
 						echo $target " will be reset now"
 						export SERIALDEV=$target
 						export ARDUINO_PORT=$target
+						echo "Will attempt to make upload $skpath to $target"
 						make -c $skpath upload
+						exstat=$?
 						# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
-						if [ "$$?" = 0 ]; then 
-							echo "Sketch upload successful";
+						if [ "$exstat" = "0" ]; then 
+							echo "Sketch upload successful"
 						else
-							echo "A problem occured while uploading sketch";
+							echo "A problem occured while uploading sketch"
 						fi
 					fi
 				done
 			fi
 		fi
-		# begin sketch upload process!
-		
-		cd ${skpath%/*}
-		# make
-		# http://superuser.com/questions/443859/separate-file-and-path-in-bash
-		# make -f $ARDMK_DIR -C "${skpath%/*}"
-
 	else
 		# conditional to determine if the reset flag has been set. if true, passed macid
 		# is flushed; if false, passed macid is paired to and bound to given rfcomm port.
 		if [ "$flush" = "" ]; then
-			# begin pairing and binding process!
+			# begin pairing and binding process
 			# restart systemd dbus and bluetooth services as a fail safe check
 			service dbus restart
 			service bluetooth restart
 			# double check the hci device, probably could do with less checks, but just to
 			# ensure reliable operation
 			if [ -z "$hcist"]; then
-				hciconfig $hcino up
+				hciconfig $hcinum up
 			fi
 			echo "Setting up RFCOMM bind for $uid on *NIX host"
 			
@@ -153,28 +155,28 @@ if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
 			if l2ping "$uid" -c 1; then
 				# devfind conditional checks if submitted UID is already registered on rfcomm,
 				# if not it pairs to and binds the passed macid variable
-				devfind=$(grep -o $uid <<< $(rfcomm))
+				devfind=$(rfcomm | grep -o $uid)
 				if [ -z "$devfind" ]; then
 					# pair to the passed macid variable.
 					# NOTE: Perhaps I should check linkkeys if device has already been
 					# paired to?
-					echo 1234 | bluez-simple-agent $hcino $uid
+					echo 1234 | bluez-simple-agent $hcinum $uid
 					# rfchck conditional checks if the passed dev device has already been
 					# bound. It releases and binds the passed macid if it has.
-					rfchck=$(grep -o $devassgn <<< $(rfcomm))
+					rfchck=$(rfcomm | grep -o $devassgn)
 					if [ -z "$rfchck" ]; then
 						# bind the passed macid to the assigned rfcomm port on channel 1
-						rfcomm bind "/dev/"$devassgn $uid 1
+						rfcomm bind "/dev/$devassgn $uid 1"
 					else
-						rfcomm release "/dev/"$devassgn
-						rfcomm bind "/dev/"$devassgn $uid 1
+						rfcomm release "/dev/$devassgn"
+						rfcomm bind "/dev/$devassgn $uid 1"
 					fi
-					echo "Dev device assigned:" $devassgn
+					echo "Dev device assigned: $devassgn"
 				else
 					# rfport searches for the bound rfcomm port number e.g. /dev/rfcomm(?)
 					echo $(hcitool name $uid) "already bound"
-					rfport=$(grep -o 'rfcomm.' <<< $(rfcomm))
-					echo "Dev device assigned:: /dev/"$rfport
+					rfport=$(rfcomm | grep -o rfcomm.)
+					echo "Dev device assigned: /dev/$rfport"
 				fi
 				rfcomm
 			else
@@ -184,26 +186,26 @@ if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
 				echo -n "Ensure device is on and within range"
 			fi
 		else
-			# begin flushing process!
+			# begin flushing process
 			# conditionals that ensure robust flushing if errors are found
 			echo "Setting up RFCOMM release for $uid on *NIX host"
-			rfchck=$(grep -o $devassgn <<< $(rfcomm))
+			rfchck=$(rfcomm | grep -o $devassgn)
 			if [ -z "$rfchck" ]; then
 				echo "Dev device $devassgn not previously attached"
 			else
-				rfcomm release "/dev/"$devassgn
+				rfcomm release "/dev/$devassgn"
 				echo "Dev device $devassgn released, rfcomm output:" $(rfcomm)
 			fi
-			hciuid=$(grep -o "..:..:..:..:..:.." <<< $(hciconfig))
+			hciuid=$(hciconfig | grep -o ..:..:..:..:..:..)
 			if [ -z "$hciuid" ]; then
 				echo "no host bluetooth hci found"
 			else
-				keychck=$(grep -o ${args[0]} <<< $(cat /var/lib/bluetooth/$hciuid/linkkeys))
+				keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
 				if [ -z "$keychck" ]; then
 					echo "$uid not previously paired"
 				else
 					bluez-test-device remove $uid
-					echo $uid "unpaired"
+					echo "$uid unpaired"
 				fi
 			fi
 		fi
