@@ -77,23 +77,6 @@ echo -n "host=$host:uid=$uid:dev=$devassgn:skpath=$skpath:reset=$reset:flush=$fl
 echo ""
 
 if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
-	# determine the hci number
-	hcinum=$(hciconfig | grep -o hci.)
-	# conditional to check that the hci device is not down
-	# NOTE: -z is an empty/unset variable check that returns true if variable isn't set
-	# alternatively, -n checks if a variable is non-empty/set and returns True if it is
-	if [ ! -z "$hcinum"];then
-		echo "Found $hcinum"
-		echo "Will now reset $hcinum"
-		echo "$(hciconfig)"
-		hciconfig -a $hcinum reset
-		echo "$(hciconfig)"
-	else
-		echo "No HCI device found"
-		exit 1
-	fi
-
-	
 	# conditional to determine if the current subprocess call is to reset or connect/release
 	# a robot
 	if [ "$reset" = "1"  ]; then
@@ -124,19 +107,36 @@ if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
 						export SERIALDEV=$target
 						export ARDUINO_PORT=$target
 						echo "Will attempt to make upload $skpath to $target"
-						make -c $skpath upload
+						make -C $skpath upload
 						exstat=$?
 						# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
 						if [ "$exstat" = "0" ]; then 
 							echo "Sketch upload successful"
+							exit 0
 						else
 							echo "A problem occured while uploading sketch"
+							exit 1
 						fi
 					fi
 				done
 			fi
 		fi
 	else
+		# determine the hci number
+		hcinum=$(hciconfig | grep -o hci.)
+		# conditional to check that the hci device is not down
+		# NOTE: -z is an empty/unset variable check that returns true if variable isn't set
+		# alternatively, -n checks if a variable is non-empty/set and returns True if it is
+		if [ ! -z "$hcinum" ];then
+			echo "Found $hcinum"
+			echo "Will now reset $hcinum"
+			echo "$(hciconfig)"
+			hciconfig -a $hcinum reset
+			echo "$(hciconfig)"
+		else
+			echo "No HCI device found"
+			exit 2
+		fi
 		# conditional to determine if the reset flag has been set. if true, passed macid
 		# is flushed; if false, passed macid is paired to and bound to given rfcomm port.
 		if [ "$flush" = "" ]; then
@@ -161,15 +161,44 @@ if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
 					# NOTE: Perhaps I should check linkkeys if device has already been
 					# paired to?
 					echo 1234 | bluez-simple-agent $hcinum $uid
+					exstat=$?
+					# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
+					if [ "$exstat" = "0" ]; then 
+						echo "Pairing successful"
+					else
+						echo "Pairing was not successful"
+						exit 3
+					fi
 					# rfchck conditional checks if the passed dev device has already been
 					# bound. It releases and binds the passed macid if it has.
 					rfchck=$(rfcomm | grep -o $devassgn)
 					if [ -z "$rfchck" ]; then
 						# bind the passed macid to the assigned rfcomm port on channel 1
 						rfcomm bind "/dev/$devassgn $uid 1"
+						exstat=$?
+						# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
+						if [ "$exstat" = "0" ]; then 
+							echo "Rfcomm binding successful"
+						else
+							echo "Rfcomm binding was not successful"
+							exit 4
 					else
 						rfcomm release "/dev/$devassgn"
+						exstat=$?
+						# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
+						if [ "$exstat" = "0" ]; then 
+							echo "Rfcomm release successful"
+						else
+							echo "Rfcomm release was not successful"
+							exit 5
 						rfcomm bind "/dev/$devassgn $uid 1"
+						exstat=$?
+						# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
+						if [ "$exstat" = "0" ]; then 
+							echo "Rfcomm binding successful"
+						else
+							echo "Rfcomm binding was not successful"
+							exit 4
 					fi
 					echo "Dev device assigned: $devassgn"
 				else
@@ -179,11 +208,13 @@ if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
 					echo "Dev device assigned: /dev/$rfport"
 				fi
 				rfcomm
+				exit 0
 			else
 				# bluetooth ping failed to find passed macid
 				rfport="NULL"
 				echo "$uid not found"
 				echo -n "Ensure device is on and within range"
+				exit 6
 			fi
 		else
 			# begin flushing process
@@ -194,19 +225,33 @@ if [ "$host" = "lin" ] || [ "$host" = "darwin" ]; then
 				echo "Dev device $devassgn not previously attached"
 			else
 				rfcomm release "/dev/$devassgn"
-				echo "Dev device $devassgn released, rfcomm output:" $(rfcomm)
+				exstat=$?
+				# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
+				if [ "$exstat" = "0" ]; then 
+					echo "Dev device $devassgn released, rfcomm output:" $(rfcomm)
+				else
+					echo "Rfcomm release was not successful"
+					exit 5
 			fi
 			hciuid=$(hciconfig | grep -o ..:..:..:..:..:..)
 			if [ -z "$hciuid" ]; then
 				echo "no host bluetooth hci found"
+				exit 7
 			else
 				keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
 				if [ -z "$keychck" ]; then
 					echo "$uid not previously paired"
 				else
 					bluez-test-device remove $uid
-					echo "$uid unpaired"
+					exstat=$?
+					# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
+					if [ "$exstat" = "0" ]; then 
+						echo "$uid successfully unpaired"
+					else
+						echo "unpairing $uid failed"
+						exit 8	
 				fi
+				exit 0
 			fi
 		fi
 	fi

@@ -11,15 +11,23 @@ flask/bin/python tests.py
 
 flask/bin/python db_start.py
 flask/bin/python run.py
-hcino=$(grep -o "hci." <<< $(hciconfig))
-hcist=$(grep -o "down" <<< $(hciconfig))
 
 echo "Copying makefiles to sketch directories"
 # http://askubuntu.com/questions/300744/copy-the-content-file-to-all-subdirectory-in-a-directory-using-terminal
-for d in /panyabot/sketches/*/; do
+for d in sketches/*/; do
 	cp /usr/share/arduino/Arduino.mk "$d"Makefile
-done 
+done
 
-if [ -z "$hcist"]; then
-	hciconfig $hcino up
+hcinum=$(hciconfig | grep -o hci.)
+# conditional to check that the hci device is not down
+# NOTE: -z is an empty/unset variable check that returns true if variable isn't set
+# alternatively, -n checks if a variable is non-empty/set and returns True if it is
+if [ ! -z "$hcinum" ];then
+	echo "Found $hcinum"
+	echo "Will now reset $hcinum"
+	echo "$(hciconfig)"
+	hciconfig -a $hcinum reset
+	echo "$(hciconfig)"
+else
+	echo "No HCI device found"
 fi

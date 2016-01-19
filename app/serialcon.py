@@ -2,7 +2,6 @@
 import os
 import time
 import serial
-import subprocess
 import panya
 import re
 from app import db
@@ -11,6 +10,12 @@ from datetime import datetime
 from app import app
 from flask import json, g
 from sys import platform as _platform
+import sys
+
+if os.name == 'posix' and sys.version_info[0] < 3:
+    import subprocess32 as subprocess
+else:
+    import subprocess
 
 # Uncomment the following lines to enable BLE search
 # if _platform == "linux" or _platform == "linux2":
@@ -45,12 +50,12 @@ def sketchupl(sketchpath):
 		pass
 	try:
 		if (host=="win"):
-			output=subprocess.check_output([rfpath,'-H',host,'-s',sketchpath], shell=True)
+			output=subprocess.check_call([rfpath,'-H',host,'-s',sketchpath], shell=True)
 			print '********************************************************************'
 			print output
 			print '********************************************************************'
 		else:
-			output=subprocess.check_output(['%s -H %s -s %s -r' %(rfpath,host,sketchpath)], shell=True)
+			output=subprocess.check_call(['%s -H %s -s %s -r' %(rfpath,host,sketchpath)], shell=True)
 			print '********************************************************************'
 			print output
 			print '********************************************************************'
@@ -121,12 +126,12 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,rst=Non
 	if rst is None:
 		try:
 			if (host=="win"):
-				output=subprocess.check_output([rfpath,'-u',macid,'-d',rfcset,'-H',host], shell=True)
+				output=subprocess.check_call([rfpath,'-u',macid,'-d',rfcset,'-H',host], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
 			else:
-				output=subprocess.check_output(['%s -u %s -d %s -H %s' %(rfpath,macid,rfcset,host)], shell=True)
+				output=subprocess.check_call(['%s -u %s -d %s -H %s' %(rfpath,macid,rfcset,host)], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
@@ -141,20 +146,20 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,rst=Non
 			db.session.commit()
 			print "Error Binding RFCOMM Device"
 			if (host=="win"):
-				output=subprocess.check_output([rfpath,'-u',macid,'-d',rfcset,'-f','-H',host], shell=True)
+				output=subprocess.check_call([rfpath,'-u',macid,'-d',rfcset,'-f','-H',host], shell=True)
 				pass
 			else:
-				output=subprocess.check_output(['%s -u %s -d %s -f -H %s' %(rfpath,macid,rfcset,host)], shell=True)
+				output=subprocess.check_call(['%s -u %s -d %s -f -H %s' %(rfpath,macid,rfcset,host)], shell=True)
 			print str(e)
 	else:
 		try:
 			if (host=="win"):
-				output=subprocess.check_output([rfpath,'-u',macid,'-d',rfcset,'-f','-H',host], shell=True)
+				output=subprocess.check_call([rfpath,'-u',macid,'-d',rfcset,'-f','-H',host], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
 			else:
-				output=subprocess.check_output(['%s -u %s -d %s -f -H %s' %(rfpath,macid,rfcset,host)], shell=True)
+				output=subprocess.check_call(['%s -u %s -d %s -f -H %s' %(rfpath,macid,rfcset,host)], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
