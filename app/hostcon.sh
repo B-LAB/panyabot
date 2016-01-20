@@ -173,7 +173,7 @@ if [ "$host" = "linux" ] || [ "$host" = "darwin" ]; then
 					rfchck=$(rfcomm | grep -o $devassgn)
 					if [ -z "$rfchck" ]; then
 						# bind the passed macid to the assigned rfcomm port on channel 1
-						rfcomm bind "/dev/$devassgn $uid 1"
+						rfcomm bind "/dev/"$devassgn $uid 1
 						exstat=$?
 						# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
 						if [ "$exstat" = "0" ]; then 
@@ -183,7 +183,7 @@ if [ "$host" = "linux" ] || [ "$host" = "darwin" ]; then
 							exit 4
 						fi
 					else
-						rfcomm release "/dev/$devassgn"
+						rfcomm release "/dev/"$devassgn
 						exstat=$?
 						# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
 						if [ "$exstat" = "0" ]; then 
@@ -192,7 +192,7 @@ if [ "$host" = "linux" ] || [ "$host" = "darwin" ]; then
 							echo "Rfcomm release was not successful"
 							exit 5
 						fi
-						rfcomm bind "/dev/$devassgn $uid 1"
+						rfcomm bind "/dev/"$devassgn $uid 1
 						exstat=$?
 						# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
 						if [ "$exstat" = "0" ]; then 
@@ -202,12 +202,12 @@ if [ "$host" = "linux" ] || [ "$host" = "darwin" ]; then
 							exit 4
 						fi
 					fi
-					echo "Dev device assigned: $devassgn"
+					echo "Dev device assigned:/dev/" $devassgn
 				else
 					# rfport searches for the bound rfcomm port number e.g. /dev/rfcomm(?)
 					echo $(hcitool name $uid) "already bound"
 					rfport=$(rfcomm | grep -o rfcomm.)
-					echo "Dev device assigned: /dev/$rfport"
+					echo "Dev device assigned: /dev/"$rfport
 				fi
 				rfcomm
 				exit 0

@@ -9,14 +9,20 @@ service bluetooth restart
 echo "Testing working directory and starting run.py"
 flask/bin/python tests.py
 
+echo "Copying makefiles and compiling sketches"
+# http://askubuntu.com/questions/300744/copy-the-content-file-to-all-subdirectory-in-a-directory-using-terminal
+mkdir -p /data/sketches
+cp -r sketches /data/
+rm -r sketches
+for d in /data/sketches/*/; do
+	export BOARD=uno
+	export ARDUINO_DIR=/usr/share/arduino
+	cp /usr/share/arduino/Arduino.mk "$d"Makefile
+	make -C $d
+done
+
 flask/bin/python db_start.py
 flask/bin/python run.py
-
-echo "Copying makefiles to sketch directories"
-# http://askubuntu.com/questions/300744/copy-the-content-file-to-all-subdirectory-in-a-directory-using-terminal
-for d in sketches/*/; do
-	cp /usr/share/arduino/Arduino.mk "$d"Makefile
-done
 
 hcinum=$(hciconfig | grep -o hci.)
 # conditional to check that the hci device is not down
