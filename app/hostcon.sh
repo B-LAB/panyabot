@@ -4,7 +4,7 @@
 
 interactive=
 flash=
-reset=
+reinstall=
 host="linux"
 
 while [ "$1" != "" ]; do
@@ -21,7 +21,7 @@ while [ "$1" != "" ]; do
 		-s | --sketchpath )		shift
 								skpath=$1
 								;;
-		-r | --reset )			reset=1
+		-r | --reinstall )		reinstall=1
 								;;
 		-f | --flush )			flush=1
 								;;
@@ -56,10 +56,10 @@ if [ "$interactive" = "1" ]; then
 		skpath=$response
 	fi
 
-	echo -n "Would you like to reset $uid firmware? (y/n) >"
+	echo -n "Would you like to reinstall $uid firmware? (y/n) >"
 	read response
 	if [ "$response" = "y" ]; then
-		reset=1
+		reinstall=1
 		echo -n "Will upload default firmware to $uid."
 		echo ""
 	fi
@@ -67,19 +67,17 @@ if [ "$interactive" = "1" ]; then
 	echo -n "Would you like to flush device? (y/n) >"
 	read response
 	if [ "$response" = "y" ]; then
-		reset=1
+		flush=1
 		echo -n "Will flush $uid from $devassgn."
 		echo ""
 	fi
 fi
 
-echo -n "host=$host:uid=$uid:dev=$devassgn:skpath=$skpath:reset=$reset:flush=$flush:interactive=$interactive"
-echo ""
+echo -n "host=$host:uid=$uid:dev=$devassgn:skpath=$skpath:reinstall=$reinstall:flush=$flush:interactive=$interactive"
 
 if [ "$host" = "linux" ] || [ "$host" = "darwin" ]; then
-	# conditional to determine if the current subprocess call is to reset or connect/release
-	# a robot
-	if [ "$reset" = "1"  ]; then
+	# conditional to determine if the current subprocess call is to reistall or connect/release a robot
+	if [ "$reinstall" = "1"  ]; then
 		if [ "$host" = "darwin" ]; then
 			# export ARDUINO_DIR=/Applications/Arduino.app/Contents/Java
 			export ARDUINO_DIR=/Applications/Arduino.app/Contents/MacOS/
@@ -95,26 +93,26 @@ if [ "$host" = "linux" ] || [ "$host" = "darwin" ]; then
 			# devnos contains the number of devices that matched
 			devpaths=($(find /sys -name "ttyACM*" | grep devices))
 			devnum=${#devpaths[@]}
-			echo "Number of Dev paths found: "$denvum
+			echo "Number of device dev paths: "$denvum
+			# if USB device devs have been found proceed to reinstall i.e. devnum>0
 			if [ "$devnum" != 0 ]; then
 				for dev in ${devpaths[@]}; do
-					echo "Checking: $dev"
+					# use udevadm tool to determine if dev paths have Arduino in their metadata
 					ardcheck=$(udevadm info -a -p ${dev#./sys} | grep Arduino)
+					# if there are arduino associated dev paths attempt to upload the sketch
 					if [ ! -z "$ardcheck" ]; then
-						echo "Arduino found"
 						target=/dev/$(echo $dev | grep -o ttyACM.)
-						echo $target " will be reset now"
+						echo "Dev path:"$dev" Dev num:"$devnum" Target:"$target
 						export SERIALDEV=$target
 						export ARDUINO_PORT=$target
-						echo "Will attempt to make upload $skpath to $target"
 						make -C $skpath upload
 						exstat=$?
-						# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
+						# $? is a shell status code that returns the previous commands exit code
 						if [ "$exstat" = "0" ]; then 
-							echo "Sketch upload successful"
+							# Sketch upload was successful
 							exit 0
 						else
-							echo "A problem occured while uploading sketch"
+							# Sketch upload was unsuccessful
 							exit 1
 						fi
 					fi
@@ -122,51 +120,51 @@ if [ "$host" = "linux" ] || [ "$host" = "darwin" ]; then
 			fi
 		fi
 	else
-		# determine the hci number
+		# determine the host bluetooth device number
 		hcinum=$(hciconfig | grep -o hci.)
 		# conditional to check that the hci device is not down
 		# NOTE: -z is an empty/unset variable check that returns true if variable isn't set
 		# alternatively, -n checks if a variable is non-empty/set and returns True if it is
 		if [ ! -z "$hcinum" ];then
-			echo "Found $hcinum"
-			echo "Will now reset $hcinum"
+			# host bluetooth device found & will be reset
 			echo "$(hciconfig)"
 			hciconfig -a $hcinum reset
 			echo "$(hciconfig)"
 		else
-			echo "No HCI device found"
+			# no host bluetooth device found. return exit code to shell or subprocess call.
 			exit 2
 		fi
-		# conditional to determine if the reset flag has been set. if true, passed macid
+		# conditional to determine if the flush flag has been set. if true, passed macid
 		# is flushed; if false, passed macid is paired to and bound to given rfcomm port.
 		if [ "$flush" = "" ]; then
 			# begin pairing and binding process
 			# restart systemd dbus and bluetooth services as a fail safe check
 			service dbus restart
 			service bluetooth restart
-			# double check the hci device, probably could do with less checks, but just to
-			# ensure reliable operation
-			if [ -z "$hcist"]; then
-				hciconfig $hcinum up
-			fi
-			echo "Setting up RFCOMM bind for $uid on *NIX host"
-			# bluetooth ping(ONCE) the passed macid variable to confirm it's up
+			echo "Pairing and binding" $uid "to" $host "host"
+			# bluetooth ping(ONCE) the bluetooth client to confirm it's up
 			if l2ping "$uid" -c 1; then
 				# devfind conditional checks if submitted UID is already registered on rfcomm,
 				# if not it pairs to and binds the passed macid variable
 				devfind=$(rfcomm | grep -o $uid)
 				if [ -z "$devfind" ]; then
 					# pair to the passed macid variable.
-					# NOTE: Perhaps I should check linkkeys if device has already been
-					# paired to?
-					echo 1234 | bluez-simple-agent $hcinum $uid
-					exstat=$?
-					# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
-					if [ "$exstat" = "0" ]; then 
-						echo "Pairing successful"
-					else
-						echo "Pairing was not successful"
-						exit 3
+					if [ -f /var/lib/bluetooth/$hciuid/linkkeys ]; then
+						keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
+						if [ -z "$keychck" ]; then
+							echo $uid "not previously paired to"
+							echo 1234 | bluez-simple-agent $hcinum $uid
+							exstat=$?
+							# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
+							if [ "$exstat" = "0" ]; then 
+								echo "Pairing successful"
+							else
+								echo "Pairing was not successful"
+								exit 3
+							fi
+						else
+							echo $uid "already paired"
+						fi
 					fi
 					# rfchck conditional checks if the passed dev device has already been
 					# bound. It releases and binds the passed macid if it has.
@@ -177,85 +175,69 @@ if [ "$host" = "linux" ] || [ "$host" = "darwin" ]; then
 						exstat=$?
 						# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
 						if [ "$exstat" = "0" ]; then 
-							echo "Rfcomm binding successful"
+							echo $uid "bound to /dev/"devassgn
 						else
 							echo "Rfcomm binding was not successful"
 							exit 4
 						fi
 					else
-						rfcomm release "/dev/"$devassgn
-						exstat=$?
-						# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
-						if [ "$exstat" = "0" ]; then 
-							echo "Rfcomm release successful"
-						else
-							echo "Rfcomm release was not successful"
-							exit 5
-						fi
-						rfcomm bind "/dev/"$devassgn $uid 1
-						exstat=$?
-						# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
-						if [ "$exstat" = "0" ]; then 
-							echo "Rfcomm binding successful"
-						else
-							echo "Rfcomm binding was not successful"
-							exit 4
-						fi
+						echo $uid "already bound to /dev/"$devassgn
 					fi
-					echo "Dev device assigned:/dev/" $devassgn
 				else
 					# rfport searches for the bound rfcomm port number e.g. /dev/rfcomm(?)
-					echo $(hcitool name $uid) "already bound"
-					rfport=$(rfcomm | grep -o rfcomm.)
-					echo "Dev device assigned: /dev/"$rfport
+					devassgn=$(rfcomm | grep -o rfcomm.)
+					echo $(hcitool name $uid) "already bound to /dev/"$devassgn
 				fi
+				# Pairing and Binding process went through flawlessly
 				rfcomm
 				exit 0
 			else
-				# bluetooth ping failed to find passed macid
-				rfport="NULL"
-				echo "$uid not found"
-				echo -n "Ensure device is on and within range"
+				# bluetooth ping failed to find passed macid. return exit code to shell or subprocess call.
+				echo "Ensure" $uid "is on and within range"
 				exit 6
 			fi
 		else
 			# begin flushing process
 			# conditionals that ensure robust flushing if errors are found
-			echo "Setting up RFCOMM release for $uid on *NIX host"
+			echo "Unpairing and unbinding" $uid "from" $host "host"
 			rfchck=$(rfcomm | grep -o $devassgn)
 			if [ -z "$rfchck" ]; then
-				echo "Dev device $devassgn not previously attached"
+				echo "Dev device" $devassgn "not previously attached"
 			else
-				rfcomm release "/dev/$devassgn"
+				rfcomm release "/dev/"$devassgn
 				exstat=$?
-				# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
 				if [ "$exstat" = "0" ]; then 
-					echo "Dev device $devassgn released, rfcomm output:" $(rfcomm)
+					echo "rfcomm:" $(rfcomm)
 				else
-					echo "Rfcomm release was not successful"
+					# Rfcomm release failed. return exit code to shell or subprocess call
 					exit 5
 				fi
 			fi
+			# determine macid of host bluetooth device
 			hciuid=$(hciconfig | grep -o ..:..:..:..:..:..)
 			if [ -z "$hciuid" ]; then
-				echo "no host bluetooth hci found"
-				exit 7
+				# no host bluetooth mac address found
+				exit 2
 			else
-				keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
-				if [ -z "$keychck" ]; then
-					echo "$uid not previously paired"
-				else
-					bluez-test-device remove $uid
-					exstat=$?
-					# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
-					if [ "$exstat" = "0" ]; then 
-						echo "$uid successfully unpaired"
+				# pair to the passed macid variable.
+				if [ -f /var/lib/bluetooth/$hciuid/linkkeys ]; then
+					keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
+					if [ -z "$keychck" ]; then
+						echo $uid "not previously paired to"
+						exit 7
 					else
-						echo "unpairing $uid failed"
-						exit 8
+						bluez-test-device remove $uid
+						exstat=$?
+						# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
+						if [ "$exstat" = "0" ]; then 
+							echo "Unpairing" $uid "successful"
+						else
+							echo "Unpairing" $uid "not successful"
+							exit 8
+						fi
 					fi
+					exit 0
 				fi
-				exit 0
 			fi
 		fi
 	fi
@@ -264,7 +246,7 @@ else
 	# you can access these args using this format: ${arg[x]} with zero indexing
 	# Currently this must always run from a CLI interface with bash scripting capabilities e.g. Git, Cygwin
 	echo "Setting up RFCOMM bind for $uid on x86 host"
-	echo -n "host=$host:uid=$uid:dev=$devassgn:skpath=$skpath:reset=$reset:flush=$flush:interactive=$interactive"
+	echo -n "host=$host:uid=$uid:dev=$devassgn:skpath=$skpath:reistall=$reinstall:flush=$flush:interactive=$interactive"
 	echo ""
 	sleep 3
 fi

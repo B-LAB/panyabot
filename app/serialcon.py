@@ -115,7 +115,7 @@ def sdpbrowse(macid=None):
 	    print("    service id:  %s "% svc["service-id"])
 	    print()
 
-def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,rst=None):
+def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,reset=None):
 	# this function takes the supplied macid passing it to the bash/shell script to
 	# pair to using the simple-bluez-agent tool and attach said macid to a 
 	# /dev/rfcomm port. If the reset flag is passed, the associated robot macid is 
@@ -123,7 +123,7 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,rst=Non
 	# /var/lib/bluetooth/{local host macid}/linkkeys. This flushing might be overkill
 	# but it ensures that all host-robot sessions are handled robustly.
 	global reset
-	if rst is None:
+	if reset is None:
 		try:
 			if (host=="win"):
 				output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-H',host], shell=True)
@@ -135,7 +135,25 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,rst=Non
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
-			datasend(macid,alias,unick,commands,rfcset,uid)
+			if (output==0):
+				print 'Starting command upload procedure'
+				datasend(macid,alias,unick,commands,rfcset,uid)
+			elif (output==1):
+				print 'Makefile compilation failed'
+			elif (output==2):
+				print 'No bluetooth host device found'
+			elif (output==3):
+				print 'Bluetooth pairing procedure failed'
+			elif (output==4):
+				print 'Rfcomm binding procedure failed'
+			elif (output==5):
+				print 'Rfcomm release procedure failed'
+			elif (output==6):
+				print 'Bluetooth client ping failed'
+			elif (output==7):
+				print 'Bluetooth client not registered with buez'
+			elif (output==8):
+				print 'Bluetooth unpairing procedure failed'
 		except Exception,e:
 			# if an exception is caught while pairing or dev attaching, the associated
 			# robot and macid are flushed to maintain database and device listing integrity.
@@ -163,7 +181,6 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,rst=Non
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
-			reset = ""
 			robot = Robot.query.filter_by(user_id=uid).first()
 			robots = Robot.query.all()
 			robot.status="inactive"
@@ -206,7 +223,7 @@ def datasend(macid,alias,unick,commands,rfcset,uid):
 	for i in range(0,len(commands)):
 		print commands[i]
 	# after downstream data transmission is completed, the attached robot is flushed.
-	rfcommbind(rfcset,macid,None,None,None,uid,reset)
+	# rfcommbind(rfcset,macid,None,None,None,uid,reset)
 
 def rfcommset(robots):
 	# this function manages the allocation of rfcomm port numbers to each incoming request.
@@ -264,8 +281,6 @@ def portsetup(commands):
 			# a procedure to manage concurrent bluetooth requests should come here
 			Qflag = False
 	if not Qflag:
-		# rfcset = "rfcomm0"
-		# robot.status="active"
 		rfcset=rfcommset(robots)
 		robot.status=rfcset
 		db.session.commit()
