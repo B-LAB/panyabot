@@ -29,8 +29,6 @@ bdir = app.config["BASE"]
 sdir = app.config["DATA"]
 # search result from bluetooth legacy discovery stored in resp list
 resp = []
-# bluetooth pairing flush flag
-reset=""
 
 # determine which platform this app package is running on and set the
 # required shell/bash script paths. these scripts manage all the
@@ -115,15 +113,14 @@ def sdpbrowse(macid=None):
 	    print("    service id:  %s "% svc["service-id"])
 	    print()
 
-def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,reset=None):
+def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=None):
 	# this function takes the supplied macid passing it to the bash/shell script to
 	# pair to using the simple-bluez-agent tool and attach said macid to a 
 	# /dev/rfcomm port. If the reset flag is passed, the associated robot macid is 
 	# flushed i.e. released from rfcomm and the pairing entry deleted from 
 	# /var/lib/bluetooth/{local host macid}/linkkeys. This flushing might be overkill
 	# but it ensures that all host-robot sessions are handled robustly.
-	global reset
-	if reset is None:
+	if flush is None:
 		try:
 			if (host=="win"):
 				output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-H',host], shell=True)
@@ -142,18 +139,60 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,reset=N
 				print 'Makefile compilation failed'
 			elif (output==2):
 				print 'No bluetooth host device found'
+				robot = Robot.query.filter_by(user_id=uid).first()
+				robots = Robot.query.all()
+				robot.status="inactive"
+				db.session.commit()
+				for rob in robots:
+					print "%s:%s" %(robot.alias,robot.status)
 			elif (output==3):
 				print 'Bluetooth pairing procedure failed'
+				robot = Robot.query.filter_by(user_id=uid).first()
+				robots = Robot.query.all()
+				robot.status="inactive"
+				db.session.commit()
+				for rob in robots:
+					print "%s:%s" %(robot.alias,robot.status)
 			elif (output==4):
 				print 'Rfcomm binding procedure failed'
+				robot = Robot.query.filter_by(user_id=uid).first()
+				robots = Robot.query.all()
+				robot.status="inactive"
+				db.session.commit()
+				for rob in robots:
+					print "%s:%s" %(robot.alias,robot.status)
 			elif (output==5):
 				print 'Rfcomm release procedure failed'
+				robot = Robot.query.filter_by(user_id=uid).first()
+				robots = Robot.query.all()
+				robot.status="inactive"
+				db.session.commit()
+				for rob in robots:
+					print "%s:%s" %(robot.alias,robot.status)
 			elif (output==6):
 				print 'Bluetooth client ping failed'
+				robot = Robot.query.filter_by(user_id=uid).first()
+				robots = Robot.query.all()
+				robot.status="inactive"
+				db.session.commit()
+				for rob in robots:
+					print "%s:%s" %(robot.alias,robot.status)
 			elif (output==7):
 				print 'Bluetooth client not registered with buez'
+				robot = Robot.query.filter_by(user_id=uid).first()
+				robots = Robot.query.all()
+				robot.status="inactive"
+				db.session.commit()
+				for rob in robots:
+					print "%s:%s" %(robot.alias,robot.status)
 			elif (output==8):
 				print 'Bluetooth unpairing procedure failed'
+				robot = Robot.query.filter_by(user_id=uid).first()
+				robots = Robot.query.all()
+				robot.status="inactive"
+				db.session.commit()
+				for rob in robots:
+					print "%s:%s" %(robot.alias,robot.status)
 		except Exception,e:
 			# if an exception is caught while pairing or dev attaching, the associated
 			# robot and macid are flushed to maintain database and device listing integrity.
@@ -171,30 +210,28 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,reset=N
 			print str(e)
 	else:
 		try:
-			if (host=="win"):
-				output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-f','-H',host], shell=True)
-				print '********************************************************************'
-				print output
-				print '********************************************************************'
-			else:
-				output=subprocess.call(['%s -u %s -d %s -f -H %s' %(rfpath,macid,rfcset,host)], shell=True)
-				print '********************************************************************'
-				print output
-				print '********************************************************************'
-			robot = Robot.query.filter_by(user_id=uid).first()
-			robots = Robot.query.all()
-			robot.status="inactive"
-			db.session.commit()
-			for rob in robots:
-				print "%s:%s" %(robot.alias,robot.status)
+			# if (host=="win"):
+			# 	output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-f','-H',host], shell=True)
+			# 	print '********************************************************************'
+			# 	print output
+			# 	print '********************************************************************'
+			# else:
+			# 	output=subprocess.call(['%s -u %s -d %s -f -H %s' %(rfpath,macid,rfcset,host)], shell=True)
+			# 	print '********************************************************************'
+			# 	print output
+			# 	print '********************************************************************'
+			print "Skipping unpairing process"
 		except Exception,e:
 			# if an error occurs while trying to flush and no ORM-related error is provided
 			# a error state with the subprocess call can be assumed.
 			print "Error Releasing RFCOMM device!"
-			robot = Robot.query.filter_by(user_id=uid).first()
-			robot.status="inactive"
-			db.session.commit()
 			print str(e)
+		robot = Robot.query.filter_by(user_id=uid).first()
+		robots = Robot.query.all()
+		robot.status="inactive"
+		db.session.commit()
+		for rob in robots:
+			print "%s:%s" %(robot.alias,robot.status)
 
 def datasend(macid,alias,unick,commands,rfcset,uid):
 	# this is the command transport mechanism. A serial port is opened at the rfcset
@@ -203,7 +240,7 @@ def datasend(macid,alias,unick,commands,rfcset,uid):
 	# must be running the arduino panyabot sketch.
 	# future feature to use the standard firmata library to have bidirectional
 	# transmission of data (commands and sensor values).
-	global reset
+	reset2 = "y"
 	devport = "/dev/"
 	devport+=str(rfcset)
 	print devport
@@ -218,12 +255,11 @@ def datasend(macid,alias,unick,commands,rfcset,uid):
 	time.sleep(2)
 	ser.write('1')
 	ser.close()
-	reset = "y"
 	# print the stored commands to the terminal window
 	for i in range(0,len(commands)):
 		print commands[i]
 	# after downstream data transmission is completed, the attached robot is flushed.
-	# rfcommbind(rfcset,macid,None,None,None,uid,reset)
+	rfcommbind(rfcset,macid,None,None,None,uid,reset2)
 
 def rfcommset(robots):
 	# this function manages the allocation of rfcomm port numbers to each incoming request.
@@ -248,16 +284,14 @@ def rfcommset(robots):
 				robot.status="inactive"
 				db.session.commit()
 				prstflag=False
-
 	if prstflag:
 		# this conditional and nested loop interate over the values stored
 		# in the prstlist to determine what port value to assign for the current
 		# request.
+		setval=0
 		for key, value in prstlist.iteritems():
-			maxval=value
-			if value>maxval:
-				maxval=value
-		setval=maxval+1
+			if (setval<value):
+				setval=value+1
 	else:
 		# if prstflag is not true, default to assign at port 0 (i.e. /dev/rfcomm0)
 		setval=0

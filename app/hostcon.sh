@@ -93,7 +93,6 @@ if [ "$host" = "linux" ] || [ "$host" = "darwin" ]; then
 			# devnos contains the number of devices that matched
 			devpaths=($(find /sys -name "ttyACM*" | grep devices))
 			devnum=${#devpaths[@]}
-			echo "Number of device dev paths: "$denvum
 			# if USB device devs have been found proceed to reinstall i.e. devnum>0
 			if [ "$devnum" != 0 ]; then
 				for dev in ${devpaths[@]}; do
