@@ -73,7 +73,7 @@ if [ "$interactive" = "1" ]; then
 	fi
 fi
 
-echo -n "host=$host:uid=$uid:dev=$devassgn:skpath=$skpath:reinstall=$reinstall:flush=$flush:interactive=$interactive"
+echo "host=$host:uid=$uid:dev=$devassgn:skpath=$skpath:reinstall=$reinstall:flush=$flush:interactive=$interactive"
 
 if [ "$host" = "linux" ] || [ "$host" = "darwin" ]; then
 	# conditional to determine if the current subprocess call is to reistall or connect/release a robot
@@ -140,35 +140,36 @@ if [ "$host" = "linux" ] || [ "$host" = "darwin" ]; then
 			# restart systemd dbus and bluetooth services as a fail safe check
 			service dbus restart
 			service bluetooth restart
-			echo "Pairing and binding" $uid "to" $host "host"
+			echo "Checking connection status of" $uid "to" $host "host"
 			# bluetooth ping(ONCE) the bluetooth client to confirm it's up
 			if l2ping "$uid" -c 1; then
+				echo "Pinging" $uid "to ensure device is up"
 				# devfind conditional checks if submitted UID is already registered on rfcomm,
 				# if not it pairs to and binds the passed macid variable
-				devfind=$(rfcomm | grep -o $uid)
+				devfind=$(rfcomm | grep $uid)
 				if [ -z "$devfind" ]; then
+					echo "Starting pairing process:"
 					# pair to the passed macid variable.
 					if [ -f /var/lib/bluetooth/$hciuid/linkkeys ]; then
 						keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
 						if [ -z "$keychck" ]; then
-							echo $uid "not previously paired to"
 							echo 1234 | bluez-simple-agent $hcinum $uid
 							exstat=$?
 							# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
 							if [ "$exstat" = "0" ]; then 
-								echo "Pairing successful"
+								echo $uid "paired"
 							else
-								echo "Pairing was not successful"
 								exit 3
 							fi
 						else
-							echo $uid "already paired"
+							echo $uid "previously paired"
 						fi
 					fi
 					# rfchck conditional checks if the passed dev device has already been
 					# bound. It releases and binds the passed macid if it has.
-					rfchck=$(rfcomm | grep -o $devassgn)
+					rfchck=$(rfcomm | grep $devassgn)
 					if [ -z "$rfchck" ]; then
+						echo "Starting binding process:"
 						# bind the passed macid to the assigned rfcomm port on channel 1
 						rfcomm bind "/dev/"$devassgn $uid 1
 						exstat=$?
@@ -176,43 +177,75 @@ if [ "$host" = "linux" ] || [ "$host" = "darwin" ]; then
 						if [ "$exstat" = "0" ]; then 
 							echo $uid "bound to /dev/"devassgn
 						else
-							echo "Rfcomm binding was not successful"
 							exit 4
 						fi
 					else
-						echo $uid "already bound to /dev/"$devassgn
+						prebound=$(echo $rfchck | grep -o "..:..:..:..:..:..")
+						echo "/dev/"$devassgn "already bound to" $prebound
+						exit 11
 					fi
 				else
-					# rfport searches for the bound rfcomm port number e.g. /dev/rfcomm(?)
-					devassgn=$(rfcomm | grep -o rfcomm.)
-					echo $(hcitool name $uid) "already bound to /dev/"$devassgn
+					# client has already been bound to
+					# devassgnchck determines if the passed devassgn value
+					devassgnchck=$(echo $devfind | grep -o "rfcomm.")
+					if [ "$devassgnchck" = "$devassgn" ]; then
+						echo $(hcitool name $uid) "already bound to /dev/"$devassgn
+						echo "Performing pairing status validation"
+						if [ -f /var/lib/bluetooth/$hciuid/linkkeys ]; then
+							keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
+							if [ -z "$keychck" ]; then
+								echo 1234 | bluez-simple-agent $hcinum $uid
+								exstat=$?
+								# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
+								if [ "$exstat" = "0" ]; then 
+									echo $uid "paired"
+								else
+									exit 9
+								fi
+							else
+								echo $uid "previously paired"
+							fi
+						fi
+					else
+						echo $uid "already assigned to" $devassgnchck
+						echo "Not able to reassign to" $devassgn
+						exit 10
+					fi
 				fi
 				# Pairing and Binding process went through flawlessly
 				rfcomm
 				exit 0
 			else
 				# bluetooth ping failed to find passed macid. return exit code to shell or subprocess call.
-				echo "Ensure" $uid "is on and within range"
 				exit 6
 			fi
 		else
 			# begin flushing process
-			# conditionals that ensure robust flushing if errors are found
-			echo "Unpairing and unbinding" $uid "from" $host "host"
-			rfchck=$(rfcomm | grep -o $devassgn)
+			# determine rfcomm path to release it from client
+			echo "Starting unbinding process:"
+			devfind=$(rfcomm | grep $uid)
+			rfchck=$(rfcomm | grep $devassgn)
+			devfound=$($devfind | grep -o "rfcomm.")
+			rfcfound=$($rfchck | grep -o "rfcomm.")
+
 			if [ -z "$rfchck" ]; then
-				echo "Dev device" $devassgn "not previously attached"
+				echo $devassgn "not previously attached"
 			else
-				rfcomm release "/dev/"$devassgn
-				exstat=$?
-				if [ "$exstat" = "0" ]; then 
-					echo "rfcomm:" $(rfcomm)
+				if [ "$devfound" = "$rfcfound" ]; then
+					rfcomm release "/dev/"$devassgn
+					exstat=$?
+					if [ "$exstat" = "0" ]; then 
+						echo $uid "unbound from"
+					else
+						# Rfcomm release failed. return exit code to shell or subprocess call
+						exit 5
+					fi
 				else
-					# Rfcomm release failed. return exit code to shell or subprocess call
-					exit 5
-				fi
+					echo "Device dev path found doesn't match the one passed in"
+					exit 11
 			fi
-			# determine macid of host bluetooth device
+
+			# determine macid of host bluetooth device to unpair client
 			hciuid=$(hciconfig | grep -o ..:..:..:..:..:..)
 			if [ -z "$hciuid" ]; then
 				# no host bluetooth mac address found

@@ -48,7 +48,7 @@ def sketchupl(sketchpath):
 		pass
 	try:
 		if (host=="win"):
-			output=subprocess.call([rfpath,'-H',host,'-s',sketchpath], shell=True)
+			output=subprocess.call([rfpath,'-H',host,'-s',sketchpath, '-r'], shell=True)
 			print '********************************************************************'
 			print output
 			print '********************************************************************'
@@ -139,6 +139,7 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 				print 'Makefile compilation failed'
 			elif (output==2):
 				print 'No bluetooth host device found'
+				print 'Please plug in a USB bluetooth dongle'
 				robot = Robot.query.filter_by(user_id=uid).first()
 				robots = Robot.query.all()
 				robot.status="inactive"
@@ -147,6 +148,7 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 					print "%s:%s" %(robot.alias,robot.status)
 			elif (output==3):
 				print 'Bluetooth pairing procedure failed'
+				print 'Please try uploading commands again'
 				robot = Robot.query.filter_by(user_id=uid).first()
 				robots = Robot.query.all()
 				robot.status="inactive"
@@ -155,6 +157,7 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 					print "%s:%s" %(robot.alias,robot.status)
 			elif (output==4):
 				print 'Rfcomm binding procedure failed'
+				print 'Device dev path probably pre-assigned'
 				robot = Robot.query.filter_by(user_id=uid).first()
 				robots = Robot.query.all()
 				robot.status="inactive"
@@ -163,6 +166,7 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 					print "%s:%s" %(robot.alias,robot.status)
 			elif (output==5):
 				print 'Rfcomm release procedure failed'
+				print 'Device dev path probably non-existent'
 				robot = Robot.query.filter_by(user_id=uid).first()
 				robots = Robot.query.all()
 				robot.status="inactive"
@@ -171,6 +175,7 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 					print "%s:%s" %(robot.alias,robot.status)
 			elif (output==6):
 				print 'Bluetooth client ping failed'
+				print 'Please make sure client is powered on and close by'
 				robot = Robot.query.filter_by(user_id=uid).first()
 				robots = Robot.query.all()
 				robot.status="inactive"
@@ -179,6 +184,7 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 					print "%s:%s" %(robot.alias,robot.status)
 			elif (output==7):
 				print 'Bluetooth client not registered with buez'
+				print 'Host operation might have been compromised'
 				robot = Robot.query.filter_by(user_id=uid).first()
 				robots = Robot.query.all()
 				robot.status="inactive"
@@ -187,6 +193,7 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 					print "%s:%s" %(robot.alias,robot.status)
 			elif (output==8):
 				print 'Bluetooth unpairing procedure failed'
+				print 'Host operation might have been compromised'
 				robot = Robot.query.filter_by(user_id=uid).first()
 				robots = Robot.query.all()
 				robot.status="inactive"
@@ -196,20 +203,21 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 		except Exception,e:
 			# if an exception is caught while pairing or dev attaching, the associated
 			# robot and macid are flushed to maintain database and device listing integrity.
-			robot = Robot.query.filter_by(user_id=uid).first()
 			# the associated robot status is set to inactive to allow queued connections to
 			# be handled.
+			robot = Robot.query.filter_by(user_id=uid).first()
 			robot.status="inactive"
 			db.session.commit()
 			print "Error Binding RFCOMM Device"
+			# the only error condition that necessitates an automatic client flush
 			if (host=="win"):
 				output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-f','-H',host], shell=True)
-				pass
 			else:
 				output=subprocess.call(['%s -u %s -d %s -f -H %s' %(rfpath,macid,rfcset,host)], shell=True)
 			print str(e)
 	else:
 		try:
+			# removed the automatic client flush to improve the web client speed.
 			# if (host=="win"):
 			# 	output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-f','-H',host], shell=True)
 			# 	print '********************************************************************'
@@ -220,12 +228,14 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 			# 	print '********************************************************************'
 			# 	print output
 			# 	print '********************************************************************'
-			print "Skipping unpairing process"
+			print "Skipping unpairing and release process"
 		except Exception,e:
 			# if an error occurs while trying to flush and no ORM-related error is provided
 			# a error state with the subprocess call can be assumed.
 			print "Error Releasing RFCOMM device!"
 			print str(e)
+		# ensure that robot status is always set back to inactive to ensure subsequent client
+		# connections
 		robot = Robot.query.filter_by(user_id=uid).first()
 		robots = Robot.query.all()
 		robot.status="inactive"
@@ -240,7 +250,7 @@ def datasend(macid,alias,unick,commands,rfcset,uid):
 	# must be running the arduino panyabot sketch.
 	# future feature to use the standard firmata library to have bidirectional
 	# transmission of data (commands and sensor values).
-	reset2 = "y"
+	flush = "y"
 	devport = "/dev/"
 	devport+=str(rfcset)
 	print devport
@@ -259,7 +269,8 @@ def datasend(macid,alias,unick,commands,rfcset,uid):
 	for i in range(0,len(commands)):
 		print commands[i]
 	# after downstream data transmission is completed, the attached robot is flushed.
-	rfcommbind(rfcset,macid,None,None,None,uid,reset2)
+	rfcommbind(rfcset,macid,None,None,None,uid,flush)
+	flush = ""
 
 def rfcommset(robots):
 	# this function manages the allocation of rfcomm port numbers to each incoming request.
@@ -267,23 +278,15 @@ def rfcommset(robots):
 	# prstflag indicates that the function must iterate to the lowest unused port number.
 	prstlist={}
 	prstflag=False
+
 	for robot in robots:
 		if (robot.status!="inactive"):
 			prstcomm=re.search("rfcomm.",robot.status)
-			if prstcomm:
-				print 'Found %s registered to %s' %(prstcomm.group(),robot.alias)
-				devno=prstcomm.group().strip("rfcomm")
-				prstlist['robot.alias']=devno
-				prstflag=True
-			else:
-				# if an integrity error is found, where the robots status value and the
-				# regex match for the rfcomm port number don't associate in the expected way,
-				# then the robots status value is forcefully reset to inactive.
-				print 'Possible error with status setting for %s' %(robot.alias)
-				print 'Resetting status value to inactive.'
-				robot.status="inactive"
-				db.session.commit()
-				prstflag=False
+			print 'Found %s registered to %s' %(prstcomm.group(),robot.alias)
+			devno=prstcomm.group().strip("rfcomm")
+			prstlist['robot.alias']=devno
+			prstflag=True
+
 	if prstflag:
 		# this conditional and nested loop interate over the values stored
 		# in the prstlist to determine what port value to assign for the current
@@ -295,6 +298,7 @@ def rfcommset(robots):
 	else:
 		# if prstflag is not true, default to assign at port 0 (i.e. /dev/rfcomm0)
 		setval=0
+
 	setcomm="rfcomm"+str(setval)
 	return setcomm
 
@@ -303,17 +307,34 @@ def portsetup(commands):
 	# if there are, the current request is queued until such a time that all
 	# prior tranmissions are completed.
 	Qflag = False
+	Tout = False
+	Qout = False
 	user = User.query.filter_by(nickname=g.user.nickname).first()
 	robot = Robot.query.filter_by(user_id=user.id).first()
 	robots = Robot.query.all()
 	for rob in robots:
 		print "%s:%s" %(robot.alias,robot.status)
 		if (rob.status!="inactive"):
-			print "Queuing bluetooth upload"
+			# Wait for 5 seconds and check again if a host-client bluetooth connection is up
+			# If elapsed_time is greater than 10 seconds then timeout the process and prompt
+			# for database check for any errors found
+			print "Queuing bluetooth upload",
 			Qflag = True
-			rfcset = "NULL"
-			# a procedure to manage concurrent bluetooth requests should come here
+			queue_start = time.time()
+			elapsed_time = time.time() - queue_start
+			if (elapsed_time < 5) and not (Qout):
+				print ".",
+				if (rob.status == "inactive"):
+					print 'Slot in queue found'
+					Qout = True
+				elapsed_time = time.time() - queue_start
+				if (elapsed_time > 10):
+					print 'Port setup timeout'
+					Tout = True
+		if Qout and not Tout:
 			Qflag = False
+		else:
+			print "Please check database value for the key %s:%s. Database may have been compromised" %(rob.alias,rob.status)
 	if not Qflag:
 		rfcset=rfcommset(robots)
 		robot.status=rfcset
