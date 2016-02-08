@@ -48,12 +48,12 @@ def sketchupl(sketchpath):
 		pass
 	try:
 		if (host=="win"):
-			output=subprocess.call([rfpath,'-H',host,'-s',sketchpath, '-r'], shell=True)
+			output=subprocess.call([rfpath,'-h',host,'-s',sketchpath, '-r'], shell=True)
 			print '********************************************************************'
 			print output
 			print '********************************************************************'
 		else:
-			output=subprocess.call(['%s -H %s -s %s -r' %(rfpath,host,sketchpath)], shell=True)
+			output=subprocess.call(['%s -h %s -s %s -r' %(rfpath,host,sketchpath)], shell=True)
 			print '********************************************************************'
 			print output
 			print '********************************************************************'
@@ -123,12 +123,12 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 	if flush is None:
 		try:
 			if (host=="win"):
-				output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-H',host], shell=True)
+				output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-h',host], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
 			else:
-				output=subprocess.call(['%s -u %s -d %s -H %s' %(rfpath,macid,rfcset,host)], shell=True)
+				output=subprocess.call(['%s -u %s -d %s -h %s' %(rfpath,macid,rfcset,host)], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
@@ -211,20 +211,20 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 			print "Error Binding RFCOMM Device"
 			# the only error condition that necessitates an automatic client flush
 			if (host=="win"):
-				output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-f','-H',host], shell=True)
+				output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-f','-h',host], shell=True)
 			else:
-				output=subprocess.call(['%s -u %s -d %s -f -H %s' %(rfpath,macid,rfcset,host)], shell=True)
+				output=subprocess.call(['%s -u %s -d %s -f -h %s' %(rfpath,macid,rfcset,host)], shell=True)
 			print str(e)
 	else:
 		try:
 			# removed the automatic client flush to improve the web client speed.
 			# if (host=="win"):
-			# 	output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-f','-H',host], shell=True)
+			# 	output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-f','-h',host], shell=True)
 			# 	print '********************************************************************'
 			# 	print output
 			# 	print '********************************************************************'
 			# else:
-			# 	output=subprocess.call(['%s -u %s -d %s -f -H %s' %(rfpath,macid,rfcset,host)], shell=True)
+			# 	output=subprocess.call(['%s -u %s -d %s -f -h %s' %(rfpath,macid,rfcset,host)], shell=True)
 			# 	print '********************************************************************'
 			# 	print output
 			# 	print '********************************************************************'
@@ -339,7 +339,7 @@ def portsetup(commands):
 		rfcset=rfcommset(robots)
 		robot.status=rfcset
 		db.session.commit()
-		rfcommbind(rfcset,robot.macid,robot.alias,user.nickname,commands,user.id)
+		rfcommbind(str(rfcset),str(robot.macid),str(robot.alias),str(user.nickname),str(commands),str(user.id))
 	# sdpbrowse(robot.macid) # HC06 and HC05 bluetooth modules don't advertise an SDP interface. Uncomment if
 	# using a module that does. Bug number will be attached to this issue.
 

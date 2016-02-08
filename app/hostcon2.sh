@@ -3,19 +3,18 @@
 # Based on positional parameters (http://linuxcommand.org/wss0130.php)
 
 interactive=
-hciter=0
 testhci=
 flash=
 reinstall=
 host="linux"
+error=()
 
+# all command options in CAPS deal with hci devices and shouldn't need to be
+# passed except in hci error cases.
 while [ "$1" != "" ]; do
 	case $1 in
-		-H | --host )			shift
+		-h | --host )			shift
 								host=$1
-								;;
-		-h | -- hciter )		shift
-								hciter=$1
 								;;
 		-u | --uid )			shift
 								uid=$1
@@ -32,8 +31,13 @@ while [ "$1" != "" ]; do
 								;;
 		-i | --interactive )	interactive=1
 								;;
-		-t | --testhci )		testhci=1
+		-T | --testhci )		testhci=1
 								;;
+		-S | --switch  )		switch=1
+								;;
+		-A | --allup )			allup=1
+								;;
+
 	esac
 	shift
 done
@@ -86,12 +90,37 @@ if [ "$interactive" = "1" ]; then
 		echo -n "Will test all attached host bluetooth devices."
 		echo ""
 	fi
+
+	echo -n "Would you like to test current HCI device? (y/n) >"
+	read response
+	if [ "$response" = "y" ]; then
+		testhci=1
+		echo -n "Will test current HCI device."
+		echo ""
+	fi
+
+	echo -n "Would you like to switch out current HCI device? (y/n) >"
+	read response
+	if [ "$response" = "y" ]; then
+		switch=1
+		echo -n "Will switch out current HCI device."
+		echo ""
+	fi
+
+	echo "DEBUG-only feature!"
+	echo -n "Would you like to pull up ALL HCI devices? (y/n) >"
+	read response
+	if [ "$response" = "y" ]; then
+		allup=1
+		echo -n "Will pull up all HCI devices."
+		echo ""
+	fi
 fi
 
 echo "host=$host:uid=$uid:dev=$devassgn:skpath=$skpath:reinstall=$reinstall:flush=$flush:interactive=$interactive"
 
 function hciallup {
-	# put all available interfaces up.
+	# pull all available interfaces up.
 
 	hcicnfvar=($(hciconfig | grep -o "hci."))
 	hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
@@ -102,9 +131,14 @@ function hciallup {
 	tl=$(echo "$hcitltotal")
 	cn=$(echo "${#hcicnfvar[@]}")
 
-	if [ "$tl" -lt "$cn" ]; then
+	# first check if the number of UP HCIs are less than available HCIs.
+	if [ "$tl" -lt "$cn" ] && [ "$tl" -ne 0 ] && [ "$cn" -ne 0 ]; then
+		# determine the number of available HCIs that aren't up.
 		hcinumdiff=$((${#hcicnfvar[@]}-$hcitltotal))
 		echo "$hcinumdiff local host device(s) is/are down"
+		# for each HCI device that's up compare it to the list of HCI devices
+		# that are available, if an available HCI device doesn't match then
+		# pull it up.
 		for (( h=0; h<"$tl"; h++ )); do
 			if [ "$(($h%2))" = 0 ]; then
 				for (( n=0; n<"$cn"; n++ )); do
@@ -116,19 +150,46 @@ function hciallup {
 							hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
 							hcitllist=($(echo "${hcitlvar#$'\n'}"))
 							hcitltotal=$((${#hcitllist[@]}/2))
-							error=0
+							# global error variable used to determine internal
+							# states of bash functions. It is looped over when
+							# the bash subprocess call is complete.
+							error+=(0)
 						else
-							# Hciconfig reset failed
+							# hciconfig reset failed
 							echo "error while resetting ${hci[$n]}"
-							error=1
+							error+=(1)
 						fi
 					fi
 				done
 			fi
 		done
+	elif [ "$tl" -eq 0 ] && [ "$cn" -gt 0 ]; then
+		for (( n=0; n<"$cn"; n++)); do
+			hciconfig -a "${hcicnfvar[$n]}" reset
+			exstat=$?
+			if [ "$exstat" = "0" ]; then 
+				echo "${hcicnfvar[$n]} reset on host"
+				hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
+				hcitllist=($(echo "${hcitlvar#$'\n'}"))
+				hcitltotal=$((${#hcitllist[@]}/2))
+				# global error variable used to determine internal
+				# states of bash functions. It is looped over when
+				# the bash subprocess call is complete.
+				error+=(0)
+			else
+				# hciconfig reset failed
+				echo "error while resetting ${hci[$n]}"
+				error+=(2)
+			fi
+	if [ "$cn" -ne 0 ]; then
+		if [ "$tl" -eq "$cn" ]; then
+			echo "all interfaces are already up"
+	else
+		echo "there are no HCI devices connected"
+		error+=(3)
 	fi
 
-	if [ "$error" = 1 ]; then exit 1; fi
+	# if [ "$error" = 1 ]; then exit 1; fi
 }
 
 function hciswitch {
@@ -152,19 +213,23 @@ function hciswitch {
 			echo "current bluetooth host set to ${hcitllist[1]}"
 			echo "$hcinumdiff local host device(s) can be switched over"
 			# currpathnum stores the digit value of the running HCI interface.
-			currpathnum=$(echo "${hcitllist[0]}" | grep -o '[0-9]$')
+			currpathnum=$(echo "${hcitllist[0]}" | grep -o '[0-9]$') #cpn
 			# start a loop over each available HCI interface to count over for
 			# the possible values that can be assigned as current HCI interface.
+			posspathnum=0
 			for (( c=0; c<"$cn"; c++ )); do
 				# posspathnum stores the digit value of the in-loop HCI interface.
-				posspathnum=$(echo "${hcicnfvar[$c]}" | grep -o '[0-9]$')
+				posspathnum=$(echo "${hcicnfvar[$c]}" | grep -o '[0-9]$') #ppn
 				# hcimax is the max index value of the available HCI interfaces.
 				hcimax=$(($(echo "${#hcicnfvar[@]}")-1))
-				# e.g. ppn=cpn then just assign to next available interface.
+				# ppn=cpn; then just assign to next available interface.
 				if [ "$posspathnum" -eq "$currpathnum" ]; then
-					if [ "$posspathnum" -lt "${#hcicnfvar[@]}" ]; then
-						posspathnum+=1
+					# ensure that ppn is always less than hcimax
+					if [ "$posspathnum" -lt "$hcimax" ]; then
+						posspathnum=$(($posspathnum+1))
 						hciconfig -a "hci$currpathnum" down
+						# additional $? variable, prexstat variable used to
+						# ensure this tiered process completes as expected.
 						prexstat=$?
 						hciconfig -a "hci$posspathnum" reset
 						exstat=$?
@@ -173,21 +238,22 @@ function hciswitch {
 							hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
 							hcitllist=($(echo "${hcitlvar#$'\n'}"))
 							hcitltotal=$((${#hcitllist[@]}/2))
-							error=0
+							error+=(0)
 						else
 							# Hciconfig reset failed
 							echo "error while switching from hci$currpathnum to hci$posspathnum"
-							error=2
+							error+=(4)
 						fi
 					fi
 				fi
-				# e.g. ppn<cpn we need to check if cpn isn't the highest value
-				# interface, if not increment to a value higher. If it is higher
-				# then force a interface assignment to hci0, the next loop will 
-				# then start from ppn=cpn.
+				# ppn<cpn (hcimax<cpn>hcimax); we need to ensure that cpn isn't
+				# he highest HCI value, if not increment to a value higher. If
+				# higher, force an interface assignment to hci0, the next loop
+				# will then start from ppn=cpn.
 				if [ "$posspathnum" -lt "$currpathnum" ]; then
 					if [ "$currpathnum" -ne "$hcimax" ]; then
 						while [ "$posspathnum" -le "$currpathnum" ]; do
+							# increment ppn until one value higher than cpn.
 							posspathnum+=1
 						done
 						hciconfig -a "hci$currpathnum" down
@@ -199,13 +265,14 @@ function hciswitch {
 							hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
 							hcitllist=($(echo "${hcitlvar#$'\n'}"))
 							hcitltotal=$((${#hcitllist[@]}/2))
-							error=0
+							error+=(0)
 						else
-							# Hciconfig reset failed
+							# hciconfig reset failed
 							echo "error while switching from hci$currpathnum to hci$posspathnum"
-							error=3
+							error+=(5)
 						fi
 					else
+						# forcing interface assignment to hci0
 						posspathnum=0
 						hciconfig -a "hci$currpathnum" down
 						prexstat=$?
@@ -216,11 +283,11 @@ function hciswitch {
 							hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
 							hcitllist=($(echo "${hcitlvar#$'\n'}"))
 							hcitltotal=$((${#hcitllist[@]}/2))
-							error=0
+							error+=(0)
 						else
-							# Hciconfig reset failed
+							# hciconfig reset failed
 							echo "error while switching from hci$currpathnum to hci$posspathnum"
-							error=4
+							error+=(6)
 						fi
 					fi
 				fi
@@ -231,10 +298,10 @@ function hciswitch {
 		fi
 	elif [ "$cn" = 1 ]; then
 		# only one host bluetooth device found
-		error=5
+		error+=(7)
 	else
 		# no host bluetooth device found
-		error=6
+		error+=(8)
 	fi
 }
 
@@ -252,16 +319,21 @@ function hciprimer {
 	tl=$(echo "$hcitltotal")
 	cn=$(echo "${#hcicnfvar[@]}")
 
-	echo "${hcitltotal} local host device(s) found"
+	echo "${hcitltotal} HCI interfaces are up"
+	# if only 1 HCI device is up, then print it and set to no error state (0).
 	if [ "$tl" -eq 1 ]; then
-		for (( i=0; i<="$tl"; i++ )); do 
+		# we have to do this loop to separate hci values from their BD Addresses
+		# in the hcitllist list variable.
+		for (( i=0; i<"$tl"; i++ )); do 
 			if [ "$(($i%2))" = 0 ]; then
 				hcitldev=$(echo "${hcitllist[$i]}")
 				hcitluid=$(echo "${hcitllist[$(($i+1))]}")
 				echo "$hcitldev=$hcitluid"
+				error+=(0)
 			fi
 		done
 	else
+		# pull down ALL available interfaces.
 		for (( h=0; h<"$tl"; h++ )); do
 			if [ "$(($h%2))" = 0 ]; then
 				hciconfig -a "${hcitllist[$h]}" down
@@ -271,30 +343,30 @@ function hciprimer {
 					hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
 					hcitllist=($(echo "${hcitlvar#$'\n'}"))
 					hcitltotal=$((${#hcitllist[@]}/2))
-					error=0
+					error+=(0)
 				else
-					# Hciconfig shutoff failed
+					# hciconfig shutoff failed
 					echo "error while shutting ${hcicnfvar[$c]}"
-					error=7
+					error+=(9)
 				fi
 			fi
-			for (( c=0; c<"$cn"; c++ )); do
-				hciconfig -a "${hcicnfvar[$c]}" reset
-				exstat=$?
-				if [ "$exstat" = "0" ]; then 
-					echo "${hcicnfvar[$n]} reset on host"
-					hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
-					hcitllist=($(echo "${hcitlvar#$'\n'}"))
-					hcitltotal=$((${#hcitllist[@]}/2))
-					error=0
-				else
-					# Hciconfig reset failed
-					echo "error while resetting ${hcicnfvar[$c]}"
-					error=8
-				fi
-			done
 		done
-
+		# pull up hci0 after pulling down all available interfaces.
+		posspathnum=0
+		hciconfig -a "hci$posspathnum" reset
+		exstat=$?
+		if [ "$exstat" = "0" ]; then 
+			echo "hci$posspathnum reset on host"
+			hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
+			hcitllist=($(echo "${hcitlvar#$'\n'}"))
+			hcitltotal=$((${#hcitllist[@]}/2))
+			error+=(0)
+		else
+			# hciconfig shutoff failed
+			echo "error while pulling up hci$posspathnum"
+			error+=(10)
+		fi
+	fi
 }
 
 function linuxflush {
@@ -322,25 +394,29 @@ function linuxflush {
 				echo "$uid unbound from $host host"
 			else
 				# Rfcomm release failed. return exit code to shell or subprocess call
-				exit 5
+				# exit 5
+				error+=(11)
 			fi
 		else
 			# Rfcomm device path found ($matchuid) doesn't match the app assigned value ($devfind)
-			exit 11
+			# exit 11
+			error+=(12)
 	fi
 
 	# determine macid of host bluetooth device to unpair client
 	hciuid=$(hciconfig | grep -o ..:..:..:..:..:..)
 	if [ -z "$hciuid" ]; then
 		# no host bluetooth mac address found
-		exit 2
+		# exit 2
+		error+=(13)
 	else
 		# pair to the passed macid variable.
 		if [ -f /var/lib/bluetooth/$hciuid/linkkeys ]; then
 			keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
 			if [ -z "$keychck" ]; then
 				echo $uid "not previously paired to"
-				exit 7
+				# exit 7
+				error+=(14)
 			else
 				bluez-test-device remove $uid
 				exstat=$?
@@ -349,20 +425,136 @@ function linuxflush {
 					echo "Unpairing" $uid "successful"
 				else
 					echo "Unpairing" $uid "not successful"
-					exit 8
+					# exit 8
+					error+=(15)
 				fi
 			fi
-			exit 0
+			# exit 0
+			error+=(0)
 		fi
 	fi
 }
 
 function linuxreinstall {
 	echo "Reinstalling"
+	export ARDUINO_DIR=/usr/share/arduino
+	export BOARD=uno
+	# determine if device dev paths have been assigned to any USB serial devices
+	# devs contains the device dev paths that matched
+	# devnos contains the number of devices that matched
+	devpaths=($(find /sys -name "ttyACM*" | grep devices))
+	devnum=${#devpaths[@]}
+	# if USB device devs have been found proceed to reinstall i.e. devnum>0
+	if [ "$devnum" != 0 ]; then
+		for dev in ${devpaths[@]}; do
+			# use udevadm tool to determine if dev paths have Arduino in their metadata
+			ardcheck=$(udevadm info -a -p ${dev#./sys} | grep Arduino)
+			# if there are arduino associated dev paths attempt to upload the sketch
+			if [ ! -z "$ardcheck" ]; then
+				target=/dev/$(echo $dev | grep -o ttyACM.)
+				echo "Dev path:"$dev" Dev num:"$devnum" Target:"$target
+				export SERIALDEV=$target
+				export ARDUINO_PORT=$target
+				make -C $skpath upload
+				exstat=$?
+				# $? is a shell status code that returns the previous commands exit code
+				if [ "$exstat" = "0" ]; then 
+					# Sketch upload was successful
+					exit 0
+				else
+					# Sketch upload was unsuccessful
+					exit 1
+				fi
+			fi
+		done
+	fi
 }
 
-function linuxupload {
-	echo "Uploading"
+function linuxpandb {
+	echo "Pairing and Binding"
+	# begin pairing and binding process
+	# restart systemd dbus and bluetooth services as a fail safe check
+	service dbus restart
+	service bluetooth restart
+	echo "Checking connection status of" $uid "to" $host "host"
+	# bluetooth ping(ONCE) the bluetooth client to confirm it's up
+	if l2ping "$uid" -c 1; then
+		echo "Pinging" $uid "to ensure device is up"
+		# devfind conditional checks if submitted UID is already registered on rfcomm,
+		# if not it pairs to and binds the passed macid variable
+		devfind=$(rfcomm | grep $uid)
+		if [ -z "$devfind" ]; then
+			echo "Starting pairing process:"
+			# pair to the passed macid variable.
+			if [ -f /var/lib/bluetooth/$hciuid/linkkeys ]; then
+				keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
+				if [ -z "$keychck" ]; then
+					echo 1234 | bluez-simple-agent $hcinum $uid
+					exstat=$?
+					# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
+					if [ "$exstat" = "0" ]; then 
+						echo $uid "paired"
+					else
+						exit 3
+					fi
+				else
+					echo $uid "previously paired"
+				fi
+			fi
+			# rfchck conditional checks if the passed dev device has already been
+			# bound. It releases and binds the passed macid if it has.
+			rfchck=$(rfcomm | grep $devassgn)
+			if [ -z "$rfchck" ]; then
+				echo "Starting binding process:"
+				# bind the passed macid to the assigned rfcomm port on channel 1
+				rfcomm bind "/dev/"$devassgn $uid 1
+				exstat=$?
+				# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
+				if [ "$exstat" = "0" ]; then 
+					echo $uid "bound to /dev/"devassgn
+				else
+					exit 4
+				fi
+			else
+				prebound=$(echo $rfchck | grep -o "..:..:..:..:..:..")
+				echo "/dev/"$devassgn "already bound to" $prebound
+				exit 11
+			fi
+		else
+			# client has already been bound to
+			# devassgnchck determines if the passed devassgn value
+			devassgnchck=$(echo $devfind | grep -o "rfcomm.")
+			if [ "$devassgnchck" = "$devassgn" ]; then
+				echo $(hcitool name $uid) "already bound to /dev/"$devassgn
+				echo "Performing pairing status validation"
+				if [ -f /var/lib/bluetooth/$hciuid/linkkeys ]; then
+					keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
+					if [ -z "$keychck" ]; then
+						echo 1234 | bluez-simple-agent $hcinum $uid
+						exstat=$?
+						# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
+						if [ "$exstat" = "0" ]; then 
+							echo $uid "paired"
+						else
+							exit 9
+						fi
+					else
+						echo $uid "previously paired"
+					fi
+				fi
+			else
+				echo $uid "already assigned to" $devassgnchck
+				echo "Not able to reassign to" $devassgn
+				exit 10
+			fi
+		fi
+		# Pairing and Binding process went through flawlessly
+		rfcomm
+		exit 0
+	else
+		# bluetooth ping failed to find passed macid. return exit code to shell or subprocess call.
+		exit 6
+	fi
 }
 
 function windows {
