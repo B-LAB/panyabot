@@ -33,6 +33,7 @@ RUN cd /panyabot
 RUN pip install virtualenv
 RUN virtualenv flask --system-site-packages
 RUN flask/bin/pip install -r requirements.txt
+RUN chmod 755 db_start.py
 RUN chmod 755 run.sh
 RUN chmod 755 app/hostcon.sh
 

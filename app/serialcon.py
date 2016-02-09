@@ -322,15 +322,18 @@ def portsetup(commands):
 			Qflag = True
 			queue_start = time.time()
 			elapsed_time = time.time() - queue_start
-			if (elapsed_time < 5) and not (Qout):
+			while (elapsed_time < 5) and not (Qout):
 				print ".",
 				if (rob.status == "inactive"):
 					print 'Slot in queue found'
 					Qout = True
 				elapsed_time = time.time() - queue_start
-				if (elapsed_time > 10):
-					print 'Port setup timeout'
-					Tout = True
+			if (elapsed_time > 5) and not Qout:
+				print 'Port setup timeout'
+				Tout = True
+		else:
+			Qout=True
+
 		if Qout and not Tout:
 			Qflag = False
 		else:
