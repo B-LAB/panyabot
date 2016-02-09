@@ -42,6 +42,8 @@ while [ "$1" != "" ]; do
 	shift
 done
 
+# the following conditionals are specific to the interactive
+# hostcon prompt call
 if [ "$interactive" = "1" ]; then
 	echo -n "Enter host platform [$host] > "
 	read response
@@ -117,7 +119,35 @@ if [ "$interactive" = "1" ]; then
 	fi
 fi
 
-echo "host=$host:uid=$uid:dev=$devassgn:skpath=$skpath:reinstall=$reinstall:flush=$flush:interactive=$interactive"
+echo "host=$host:uid=$uid"
+echo "flush=$flush:dev=$devassgn"
+echo "reinstall=$reinstall:skpath=$skpath"
+echo "interactive=$interactive"
+echo "testhci=$testhci:switch=$switch:allup=$allup"
+
+function optexecute {
+	if [ "$host" = "linux" ]; then
+		if [ ! -z "$flush" ]; then
+			linuxflush
+			errorcatch
+		elif [ ! -z "$reinstall" ]; then
+			linuxreinstall
+			errorcatch
+		else
+			linuxpandb
+			errorcatch
+		fi
+	elif [ "$host" = "darwin" ]; then
+		darwin
+	else
+		windows
+	fi
+
+}
+
+function errorcatch {
+	pass
+}
 
 function hciallup {
 	# pull all available interfaces up.
@@ -460,10 +490,10 @@ function linuxreinstall {
 				# $? is a shell status code that returns the previous commands exit code
 				if [ "$exstat" = "0" ]; then 
 					# Sketch upload was successful
-					exit 0
+					error+=(16)
 				else
 					# Sketch upload was unsuccessful
-					exit 1
+					error+=(17)
 				fi
 			fi
 		done
@@ -495,7 +525,7 @@ function linuxpandb {
 					if [ "$exstat" = "0" ]; then 
 						echo $uid "paired"
 					else
-						exit 3
+						error+=(18)
 					fi
 				else
 					echo $uid "previously paired"
@@ -513,12 +543,12 @@ function linuxpandb {
 				if [ "$exstat" = "0" ]; then 
 					echo $uid "bound to /dev/"devassgn
 				else
-					exit 4
+					error+=(19)
 				fi
 			else
 				prebound=$(echo $rfchck | grep -o "..:..:..:..:..:..")
 				echo "/dev/"$devassgn "already bound to" $prebound
-				exit 11
+				error+=(20)
 			fi
 		else
 			# client has already been bound to
@@ -536,7 +566,7 @@ function linuxpandb {
 						if [ "$exstat" = "0" ]; then 
 							echo $uid "paired"
 						else
-							exit 9
+							error+=(21)
 						fi
 					else
 						echo $uid "previously paired"
@@ -545,15 +575,15 @@ function linuxpandb {
 			else
 				echo $uid "already assigned to" $devassgnchck
 				echo "Not able to reassign to" $devassgn
-				exit 10
+				error+=(22)
 			fi
 		fi
 		# Pairing and Binding process went through flawlessly
 		rfcomm
-		exit 0
+		error+=(0)
 	else
 		# bluetooth ping failed to find passed macid. return exit code to shell or subprocess call.
-		exit 6
+		error+=(23)
 	fi
 }
 
