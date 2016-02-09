@@ -498,6 +498,7 @@ function linuxreinstall {
 				echo "Dev path:"$dev" Dev num:"$devnum" Target:"$target
 				export SERIALDEV=$target
 				export ARDUINO_PORT=$target
+				export ARDUINO_LIBS="Servo Wire Firmata"
 				make -C $skpath upload
 				exstat=$?
 				# $? is a shell status code that returns the previous commands exit code
@@ -517,6 +518,8 @@ function linuxpandb {
 	echo "Pairing and Binding"
 	# begin pairing and binding process
 	# restart systemd dbus and bluetooth services as a fail safe check
+	# NOTE: restarting the dbus will break a Linux Guest OS running on a VM.
+	# Turn on only if you're sure you won't be running your fork on a VM.
 	# service dbus restart
 	service bluetooth restart
 	echo "Checking connection status of" $uid "to" $host "host"

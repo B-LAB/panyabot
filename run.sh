@@ -14,12 +14,6 @@ echo "Copying makefiles and compiling sketches"
 mkdir -p /data/sketches
 cp -r sketches /data/
 rm -r sketches
-for d in /data/sketches/*/; do
-	export BOARD=uno
-	export ARDUINO_DIR=/usr/share/arduino
-	cp /usr/share/arduino/Arduino.mk "$d"Makefile
-	make -C $d
-done
 
 flask/bin/python db_start.py
 flask/bin/python run.py
