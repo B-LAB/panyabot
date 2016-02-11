@@ -360,6 +360,14 @@ function linuxhciprimer {
 				error+=(0)
 			fi
 		done
+	elif [ "$tl" -eq 0 ]; then
+		echo "no HCI interfaces are up"
+		error+=(24)
+		if [ "$cn" -eq 0 ]; then
+			echo "no HCI interfaces available"
+			error+=(25)
+			errorcatch
+		fi
 	else
 		# pull down ALL available interfaces.
 		for (( h=0; h<"$tl"; h++ )); do
@@ -591,47 +599,46 @@ function linuxpandb {
 }
 
 function errorcatch {
-	okpass=0
+	errorcount=0
 	if [ "$host" = "linux" ]; then
 		for e in ${error[@]}; do
-			while [ "$e" != "" ]; do
-				case $e in
-					"0" ) echo "operation success";;
-					"1" ) echo "error 1";;
-					"2" ) echo "error 2";;
-					"3" ) echo "error 3";;
-					"4" ) echo "error 4";;
-					"5" ) echo "error 5";;
-					"6" ) echo "error 6";;
-					"7" ) echo "error 7";;
-					"8" ) echo "error 8";;
-					"9" ) echo "error 9";;
-					"10" ) echo "error 10";;
-					"11" ) echo "error 11";;
-					"12" ) echo "error 12";;
-					"13" ) echo "error 13";;
-					"14" ) echo "error 14";;
-					"15" ) echo "error 15";;
-					"16" ) echo "error 16";;
-					"17" ) echo "error 17";;
-					"18" ) echo "error 18";;
-					"19" ) echo "error 19";;
-					"20" ) echo "error 20";;
-					"21" ) echo "error 21";;
-					"22" ) echo "error 22";;
-					"23" ) echo "error 23";;
-				esac
-				shift
-			done
+			case $e in
+				"0" ) echo "operation success";;
+				"1" ) echo "error 1";;
+				"2" ) echo "error 2";;
+				"3" ) echo "error 3";;
+				"4" ) echo "error 4";;
+				"5" ) echo "error 5";;
+				"6" ) echo "error 6";;
+				"7" ) echo "error 7";;
+				"8" ) echo "error 8";;
+				"9" ) echo "error 9";;
+				"10" ) echo "error 10";;
+				"11" ) echo "error 11";;
+				"12" ) echo "error 12";;
+				"13" ) echo "error 13";;
+				"14" ) echo "error 14";;
+				"15" ) echo "error 15";;
+				"16" ) echo "error 16";;
+				"17" ) echo "error 17";;
+				"18" ) echo "error 18";;
+				"19" ) echo "error 19";;
+				"20" ) echo "error 20";;
+				"21" ) echo "error 21";;
+				"22" ) echo "error 22";;
+				"23" ) echo "error 23";;
+				"24" ) echo "error 24";;
+				"25" ) echo "error 25";;
+			esac
 			if [ "$e" != 0 ]; then
-				okpass=okpass+1
+				errorcount=$(($errorcount+1))
 			else
-				okpass=okpass
+				errorcount=$(($errorcount+0))
 			fi
 		done
-		if [ "$okpass" -gt 0 ]; then
-			echo "${#error[@]} errors occured"
-			exit ${error[@]}
+		if [ "$errorcount" -gt 0 ]; then
+			echo "$errorcount errors occured"
+			exit $errorcount
 		else
 			echo "no errors occured"
 			exit 0

@@ -1,44 +1,71 @@
 #!/bin/bash
 
-error=0
+error=()
+homedir=$(dirname $(pwd))
+echo "$homedir"
 
 function compilefw {
-	for oldfwdir in ../data/sketches/*; do
-		echo $oldfwdir
-		export BOARD=uno
-		export ARDUINO_DIR=/usr/share/arduino
-		if [ ! -d $oldfwdir/Makefile ]; then
-			cp /usr/share/arduino/Arduino.mk Makefile
-		fi
-		if [ ! -d $oldfwdir/Common.mk ]; then
-			cp /usr/share/arduino/Common.mk Makefile
-		fi
-		make -C $oldfwdir
-		exstat=$?
-		if [ "$exstat" = "0" ]; then 
-			echo "compile successful"
-			error=error
-		else
-			echo "compile not successful"
-			error=error+1
-		fi
-	done
-	if [ "$error" = 0 ]; then
-		exit 0
+	echo "compiling $oldfwdir"
+	export BOARD=uno
+	export ARDUINO_DIR=/usr/share/arduino
+	export ARDUINO_LIBS="Servo Wire Firmata"
+	if [ ! -d $oldfwdir/Makefile ]; then
+		cp /usr/share/arduino/Arduino.mk Makefile
+	fi
+	if [ ! -d $oldfwdir/Common.mk ]; then
+		cp /usr/share/arduino/Common.mk ./
+	fi
+	make -C $oldfwdir
+	exstat=$?
+	if [ "$exstat" = "0" ]; then 
+		echo "compile successful"
+		error+=(0)
 	else
-		exit 3
+		echo "compile not successful"
+		error+=(1)
+	fi
+}
+
+function update {
+	cp -r $newfw $(dirname $oldfw)
+	rm -r $oldfw
+}
+
+function errorcatch {
+	errorcount=0
+	if [ "$host" = "linux" ]; then
+		for e in ${error[@]}; do
+			case $e in
+				"0" ) echo "operation success";;
+				"1" ) echo "error 1";;
+				"2" ) echo "error 2";;
+				"3" ) echo "error 3";;
+			esac
+			if [ "$e" != 0 ]; then
+				errorcount=$((errorcount+1))
+			else
+				errorcount=$((errorcount+0))
+			fi
+		done
+		if [ "$errorcount" -gt 0 ]; then
+			echo "$errorcount errors occured"
+			exit $errorcount
+		else
+			echo "no errors occured"
+			exit 0
+		fi
 	fi
 }
 
 function firmwarecheck {
-	if [ ! -d ../data/sketches ]; then
+	if [ ! -d $homedir/data/sketches ]; then
 		echo "Copying makefiles and compiling firmware"
 		# http://askubuntu.com/questions/300744/copy-the-content-file-to-all-subdirectory-in-a-directory-using-terminal
-		mkdir -p ../data/sketches
-		cp -r sketches ../data/
-		compilefw
-		rm -r sketches
-		exit 0
+		cp -r sketches $homedir/data/
+		for oldfwdir in $homedir/data/sketches/*; do
+			compilefw
+		done
+		error+=(0)
 	else
 		echo "Checking for firmware updates"
 		for newfwdir in sketches/*; do
@@ -48,67 +75,64 @@ function firmwarecheck {
 				nfirmware=$(basename $newfw)
 				nfwmatch=$(echo $nfirmware | grep -i -o $nfwbasename)
 				if [ ! -z "$nfwmatch" ]; then
-					echo "$nfirmware"
-					for oldfwdir in ../data/sketches/*; do
+					echo "$nfirmware found in $newfwdir"
+					for oldfwdir in $homedir/data/sketches/*; do
 						ofwbasename=$(basename $oldfwdir)
 						for oldfw in $oldfwdir/*; do
 							ofirmware=$(basename $oldfw)
 							ofwmatch=$(echo $ofirmware | grep -i -o $ofwbasename)
-							if [ ! -z "$ofwmatch" ]; then
-								if [ ! -z "$ofwmatch" ]; then
-									onfwmatch=$(echo $ofirmware | grep -i -o $nfwbasename)
-									if [ ! -z "$onfwmatch" ]; then
-										echo "comparing $ofirmware to $nfirmware"
-										if [ "$ofirmware" != "$nfirmware" ]; then
-											onum=$(echo ${ofirmware//[A-Za-z^.]./})
-											nnum=$(echo ${nfirmware//[A-Za-z^.]./})
-											if [ ! -z "$onum" ]; then
-												echo "updating $ofirmware to $nfirmware"
-												if [ ! -z "$nnum"]; then
-													if [ "$onum" -lt "$nnum" ]; then
-														echo "saving $newfw over $oldfw"
-														cp -r sketches/nfirmware $(dirname $oldfw)
-														rm -r $oldfw
-														compilefw
-													else
-														# Downgrading firmware is not supported
-														echo "ERROR: legacy firmware found in update repository"
-														exit 2
-													fi
-												else
-													echo "ERROR: firmware in update repository lacks version info"
-													echo "INFO: saving $newfw over $oldfw"
-													cp -r sketches/nfirmware $(dirname $oldfw)
-													rm -r $oldfw
-													compilefw
-												fi
+							onfwmatch=$(echo $ofirmware | grep -i -o $nfwbasename)
+							if [ ! -z "$ofwmatch" ] && [ ! -z "$onfwmatch" ]; then
+								echo "$ofirmware found in $oldfwdir"
+								echo "comparing $ofirmware to $nfirmware"
+								if [ "$ofirmware" != "$nfirmware" ]; then
+									onum=$(echo ${ofirmware//[A-Za-z^.]/})
+									nnum=$(echo ${nfirmware//[A-Za-z^.]/})
+									if [ ! -z "$onum" ]; then
+										echo "updating $ofirmware to $nfirmware"
+										if [ ! -z "$nnum" ]; then
+											if [ $(echo "$onum") -lt $(echo "$nnum") ]; then
+												echo "saving $newfw over $oldfw"
+												update
+												compilefw
 											else
-												echo "ERROR: legacy firmware lacks version info"
-												if [ ! -z "$nnum"]; then
-													echo "INFO: saving $newfw over $oldfw"
-													cp -r $newfw $(dirname $oldfw)
-													rm -r $oldfw
-													compilefw
-												else
-													echo "ERROR: firmware update lacks version info"
-													echo "ERROR: firmware can't be updated"
-													exit 1
-												fi
+												# Downgrading firmware is not supported
+												echo "ERROR: legacy firmware found in update repository"
+												error+=(2)
 											fi
 										else
-										echo "no update required for $ofwbasename"
-										exit 0
+											echo "ERROR: firmware in update repository lacks version info"
+											echo "INFO: saving $newfw over $oldfw"
+											update
+											compilefw
+										fi
+									else
+										echo "ERROR: legacy firmware lacks version info"
+										if [ ! -z "$nnum" ]; then
+											echo "INFO: saving $newfw over $oldfw"
+											update
+											compilefw
+										else
+											echo "ERROR: firmware update lacks version info"
+											echo "ERROR: firmware can't be updated"
+											error+=(3)
 										fi
 									fi
-		                        fi
+								else
+								echo "no update required for $ofwbasename"
+								onfwmatch=
+								ofwmatch=
+								nfwmatch=
+								error+=(0)
+								fi
 							fi
 						done
 					done
 				fi
 			done
 		done
-		rm -r sketches
 	fi
 }
 
 firmwarecheck
+errorcatch

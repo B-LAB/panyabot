@@ -6,6 +6,7 @@
 flask/
 instance/config.py
 sketches/*/build-uno
+Makefile
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
