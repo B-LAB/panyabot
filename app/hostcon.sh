@@ -3,7 +3,7 @@
 # Based on positional parameters (http://linuxcommand.org/wss0130.php)
 
 interactive=
-testhci=
+primehci=
 flash=
 reinstall=
 host="linux"
@@ -25,17 +25,19 @@ while [ "$1" != "" ]; do
 		-s | --sketchpath )		shift
 								skpath=$1
 								;;
-		-r | --reinstall )		reinstall=1
+		-r | --reinstall )		reinstall="reinstall"
 								;;
-		-f | --flush )			flush=1
+		-f | --flush )			flush="flush"
 								;;
-		-i | --interactive )	interactive=1
+		-i | --interactive )	interactive="interactive"
 								;;
-		-T | --testhci )		testhci=1
+		-p | --pairbind )		pairbind="pairbind"
 								;;
-		-S | --switch  )		switch=1
+		-P | --primehci )		primehci="primehci"
 								;;
-		-A | --allup )			allup=1
+		-S | --switch  )		switch="switch"
+								;;
+		-A | --allup )			allup="allup"
 								;;
 
 	esac
@@ -69,10 +71,18 @@ if [ "$interactive" = "1" ]; then
 		skpath=$response
 	fi
 
+	echo -n "Would you like to pair and bind host to client? (y/n) >"
+	read response
+	if [ "$response" = "y" ]; then
+		pairbind="pairbind"
+		echo -n "Will pair and bind $host to $uid at $devassgn."
+		echo ""
+	fi
+
 	echo -n "Would you like to reinstall $uid firmware? (y/n) >"
 	read response
 	if [ "$response" = "y" ]; then
-		reinstall=1
+		reinstall="reinstall"
 		echo -n "Will upload default firmware to $uid."
 		echo ""
 	fi
@@ -80,31 +90,23 @@ if [ "$interactive" = "1" ]; then
 	echo -n "Would you like to flush device? (y/n) >"
 	read response
 	if [ "$response" = "y" ]; then
-		flush=1
+		flush="flush"
 		echo -n "Will flush $uid from $devassgn."
 		echo ""
 	fi
 
-	echo -n "Would you like to test host bluetooth device(s)? (y/n) >"
+	echo -n "Would you like to prime a HCI device? (y/n) >"
 	read response
 	if [ "$response" = "y" ]; then
-		testhci=1
-		echo -n "Will test all attached host bluetooth devices."
-		echo ""
-	fi
-
-	echo -n "Would you like to test current HCI device? (y/n) >"
-	read response
-	if [ "$response" = "y" ]; then
-		testhci=1
-		echo -n "Will test current HCI device."
+		primehci="primehci"
+		echo -n "Will prime a HCI device."
 		echo ""
 	fi
 
 	echo -n "Would you like to switch out current HCI device? (y/n) >"
 	read response
 	if [ "$response" = "y" ]; then
-		switch=1
+		switch="switch"
 		echo -n "Will switch out current HCI device."
 		echo ""
 	fi
@@ -113,7 +115,7 @@ if [ "$interactive" = "1" ]; then
 	echo -n "Would you like to pull up ALL HCI devices? (y/n) >"
 	read response
 	if [ "$response" = "y" ]; then
-		allup=1
+		allup="allup"
 		echo -n "Will pull up all HCI devices."
 		echo ""
 	fi
@@ -123,44 +125,26 @@ echo "host=$host:uid=$uid"
 echo "flush=$flush:dev=$devassgn"
 echo "reinstall=$reinstall:skpath=$skpath"
 echo "interactive=$interactive"
-echo "testhci=$testhci:switch=$switch:allup=$allup"
+echo "primehci=$primehci:switch=$switch:allup=$allup"
 
 function optexecute {
 	echo "starting prompted execution scripts"
-	if [ "$host" = "linux" ]; then
-		if [ ! -z "$flush" ]; then
-			linuxflush
-			errorcatch
-		elif [ ! -z "$reinstall" ]; then
-			linuxreinstall
-			errorcatch
-		else
-			linuxpandb
-			errorcatch
-		fi
-	elif [ "$host" = "darwin" ]; then
-		darwin
-	else
-		windows
-	fi
-}
-
-function errorcatch {
-	for e in ${error[@]}; do
-		if [ "${#error[@]}" -gt 1 ]; then
-			if [ "$e" -eq 1 ]; then
-				exit 1
-			fi
-		elif [ "$e" = 0 ]; then
-			# No error occured during function executions
-			exit 0
-		fi
+	while [ "$1" != "" ]; do
+		case $1 in
+			"linux" ) linuxscripts $reinstall $flush $primehci $pairbind $switch $allup;;
+			"windows" ) windowsscripts $reinstall $flush $primehci $pairbind $switch $allup;;
+			"darwin" ) darwinscripts $reinstall $flush $primehci $pairbind $switch $allup;;
+		esac
+		shift
 	done
+	echo "checking for any runtime errors"
+	errorcatch
 }
 
-function hciallup {
+function linuxhciallup {
 	# pull all available interfaces up.
 
+	echo "Pulling up all HCI devices"
 	hcicnfvar=($(hciconfig | grep -o "hci."))
 	hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
 	hcitllist=($(echo "${hcitlvar#$'\n'}"))
@@ -234,9 +218,10 @@ function hciallup {
 	# if [ "$error" = 1 ]; then exit 1; fi
 }
 
-function hciswitch {
+function linuxhciswitch {
 	# iteratively switch to any alternative HCI interface on each call.
 
+	echo "Switching over host HCI devices"
 	hcicnfvar=($(hciconfig | grep -o "hci."))
 	hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
 	hcitllist=($(echo "${hcitlvar#$'\n'}"))
@@ -249,7 +234,7 @@ function hciswitch {
 
 	# check if there are multiple HCI interfaces to switch over. Otherwise exit.
 	if [ "$cn" -gt 1 ]; then
-		# ensure there's only one HCI interface up. Otherwise run hciprimer.
+		# ensure there's only one HCI interface up. Otherwise run linuxhciprimer.
 		if [ "$tl" -eq 1 ]; then
 			hcinumdiff=$(($cn-$tl))
 			echo "current bluetooth host set to ${hcitllist[1]}"
@@ -336,7 +321,7 @@ function hciswitch {
 			done
 		else
 			# many interfaces are up, will fix to only one running interface.
-			hciprimer
+			linuxhciprimer
 		fi
 	elif [ "$cn" = 1 ]; then
 		# only one host bluetooth device found
@@ -347,9 +332,10 @@ function hciswitch {
 	fi
 }
 
-function hciprimer {
+function linuxhciprimer {
 	# this function ensures that only one HCI device is used per session.
 
+	echo "Priming HCI device on host"
 	hcicnfvar=($(hciconfig | grep -o "hci."))
 	hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
 	hcitllist=($(echo "${hcitlvar#$'\n'}"))
@@ -413,7 +399,7 @@ function hciprimer {
 
 function linuxflush {
 	# begin flushing process
-	echo "FLUSHING"
+	echo "Starting flush on linux host"
 	echo "Starting release process:"
 	# We first determine if the passed device dev assignment
 	# exists in the rfcomm table.
@@ -446,6 +432,7 @@ function linuxflush {
 		fi
 	fi
 
+	echo "Starting unpair process:"
 	# determine macid of host bluetooth device to unpair client
 	hciuid=$(hciconfig | grep -o ..:..:..:..:..:..)
 	if [ -z "$hciuid" ]; then
@@ -479,7 +466,7 @@ function linuxflush {
 }
 
 function linuxreinstall {
-	echo "Reinstalling"
+	echo "Starting firmware reinstall of serial devices"
 	export ARDUINO_DIR=/usr/share/arduino
 	export BOARD=uno
 	# determine if device dev paths have been assigned to any USB serial devices
@@ -603,16 +590,80 @@ function linuxpandb {
 	fi
 }
 
-function windows {
+function errorcatch {
+	okpass=0
+	if [ "$host" = "linux" ]; then
+		for e in ${error[@]}; do
+			while [ "$e" != "" ]; do
+				case $e in
+					"0" ) echo "operation success";;
+					"1" ) echo "error 1";;
+					"2" ) echo "error 2";;
+					"3" ) echo "error 3";;
+					"4" ) echo "error 4";;
+					"5" ) echo "error 5";;
+					"6" ) echo "error 6";;
+					"7" ) echo "error 7";;
+					"8" ) echo "error 8";;
+					"9" ) echo "error 9";;
+					"10" ) echo "error 10";;
+					"11" ) echo "error 11";;
+					"12" ) echo "error 12";;
+					"13" ) echo "error 13";;
+					"14" ) echo "error 14";;
+					"15" ) echo "error 15";;
+					"16" ) echo "error 16";;
+					"17" ) echo "error 17";;
+					"18" ) echo "error 18";;
+					"19" ) echo "error 19";;
+					"20" ) echo "error 20";;
+					"21" ) echo "error 21";;
+					"22" ) echo "error 22";;
+					"23" ) echo "error 23";;
+				esac
+				shift
+			done
+			if [ "$e" != 0 ]; then
+				okpass=okpass+1
+			else
+				okpass=okpass
+			fi
+		done
+		if [ "$okpass" -gt 0 ]; then
+			echo "${#error[@]} errors occured"
+			exit ${error[@]}
+		else
+			echo "no errors occured"
+			exit 0
+		fi
+	fi
+}
+
+function windowsscripts {
 	echo "Setting up host-client connection for $uid on $uid host"
 	echo ""
 	sleep 3
 }
 
-function darwin {
+function darwinscripts {
 	echo "Setting up host-client connection for $uid on $uid host"
 	echo ""
 	sleep 3
 }
 
-optexecute
+function linuxscripts {
+	echo "starting linux script execution"
+	while [ "$1" != "" ]; do
+		case $1 in
+			"reinstall" ) linuxreinstall;;
+			"flush" ) linuxflush;;
+			"pairbind" ) linuxpandb;;
+			"allup" ) linuxhciallup;;
+			"primehci" ) linuxhciprimer;;
+			"switch" ) linuxhciswitch;;
+		esac
+		shift
+	done
+}
+
+optexecute $host

@@ -36,6 +36,7 @@ RUN flask/bin/pip install -r requirements.txt
 RUN chmod 755 db_start.py
 RUN chmod 755 run.sh
 RUN chmod 755 app/hostcon.sh
+RUN chmod 755 firmwareman.sh
 
 # Expose ports
 EXPOSE 5000

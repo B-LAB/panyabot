@@ -28,17 +28,8 @@ echo "Creating and testing SQLAlchemy database"
 flask/bin/python db_start.py
 flask/bin/python tests.py
 
-echo "Copying makefiles and compiling sketches"
-# http://askubuntu.com/questions/300744/copy-the-content-file-to-all-subdirectory-in-a-directory-using-terminal
-mkdir -p ../data/sketches
-cp -r sketches ../data/
-for d in ../data/sketches/*/; do
-	export BOARD=uno
-	export ARDUINO_DIR=/usr/share/arduino
-	cp /usr/share/arduino/Arduino.mk "$d"Makefile
-	make -C $d
-done
-rm -r sketches
+echo "Running firmware manager"
+flask/bin/sh firmwareman.sh
 
-
+echo "Starting app"
 flask/bin/python run.py
