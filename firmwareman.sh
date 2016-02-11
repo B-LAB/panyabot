@@ -1,20 +1,33 @@
 #!/bin/bash
 
+error=0
+
 function compilefw {
 	for oldfwdir in ../data/sketches/*; do
+		echo $oldfwdir
 		export BOARD=uno
 		export ARDUINO_DIR=/usr/share/arduino
-		cp /usr/share/arduino/Arduino.mk "$oldfwdir"Makefile
+		if [ ! -d $oldfwdir/Makefile ]; then
+			cp /usr/share/arduino/Arduino.mk Makefile
+		fi
+		if [ ! -d $oldfwdir/Common.mk ]; then
+			cp /usr/share/arduino/Common.mk Makefile
+		fi
 		make -C $oldfwdir
 		exstat=$?
 		if [ "$exstat" = "0" ]; then 
 			echo "compile successful"
-			exit 0
+			error=error
 		else
 			echo "compile not successful"
-			exit 3
+			error=error+1
 		fi
 	done
+	if [ "$error" = 0 ]; then
+		exit 0
+	else
+		exit 3
+	fi
 }
 
 function firmwarecheck {

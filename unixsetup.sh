@@ -23,13 +23,16 @@ chmod 755 tests.py
 chmod 755 run.py
 chmod 755 run.sh
 chmod 755 app/hostcon.sh
+chmod 755 firmwareman.sh
 
 echo "Creating and testing SQLAlchemy database"
 flask/bin/python db_start.py
 flask/bin/python tests.py
 
 echo "Running firmware manager"
-flask/bin/sh firmwareman.sh
+./firmwareman.sh
+echo "Priming one HCI device on host"
+./app/hostcon.sh -P
 
 echo "Starting app"
 flask/bin/python run.py

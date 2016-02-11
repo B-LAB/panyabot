@@ -24,8 +24,8 @@ else
 fi
 
 echo "Checking for firmware updates"
-flask/bin/sh firmwareman.sh
+./firmwareman.sh
 echo "Priming one HCI device on host"
-flask/bin/sh app/hostcon.sh -P
+./app/hostcon.sh -P
 echo "Starting app"
 flask/bin/python run.py
