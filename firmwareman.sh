@@ -10,10 +10,10 @@ function compilefw {
 	export ARDUINO_DIR=/usr/share/arduino
 	export ARDUINO_LIBS="Servo Wire Firmata"
 	if [ ! -d $oldfwdir/Makefile ]; then
-		cp /usr/share/arduino/Arduino.mk Makefile
+		cp /usr/share/arduino/Arduino.mk $oldfwdir/Makefile
 	fi
 	if [ ! -d $oldfwdir/Common.mk ]; then
-		cp /usr/share/arduino/Common.mk ./
+		cp /usr/share/arduino/Common.mk $oldfwdir
 	fi
 	make -C $oldfwdir
 	exstat=$?
