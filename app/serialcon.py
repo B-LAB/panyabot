@@ -123,83 +123,83 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 	if flush is None:
 		try:
 			if (host=="win"):
-				output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-h',host], shell=True)
+				output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-h',host, '-p'], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
 			else:
-				output=subprocess.call(['%s -u %s -d %s -h %s' %(rfpath,macid,rfcset,host)], shell=True)
+				output=subprocess.call(['%s -u %s -d %s -h %s -p' %(rfpath,macid,rfcset,host)], shell=True)
 				print '********************************************************************'
 				print output
 				print '********************************************************************'
 			if (output==0):
 				print 'Starting command upload procedure'
 				datasend(macid,alias,unick,commands,rfcset,uid)
-			elif (output==1):
-				print 'Makefile compilation failed'
-			elif (output==2):
-				print 'No bluetooth host device found'
-				print 'Please plug in a USB bluetooth dongle'
-				robot = Robot.query.filter_by(user_id=uid).first()
-				robots = Robot.query.all()
-				robot.status="inactive"
-				db.session.commit()
-				for rob in robots:
-					print "%s:%s" %(robot.alias,robot.status)
-			elif (output==3):
-				print 'Bluetooth pairing procedure failed'
-				print 'Please try uploading commands again'
-				robot = Robot.query.filter_by(user_id=uid).first()
-				robots = Robot.query.all()
-				robot.status="inactive"
-				db.session.commit()
-				for rob in robots:
-					print "%s:%s" %(robot.alias,robot.status)
-			elif (output==4):
-				print 'Rfcomm binding procedure failed'
-				print 'Device dev path probably pre-assigned'
-				robot = Robot.query.filter_by(user_id=uid).first()
-				robots = Robot.query.all()
-				robot.status="inactive"
-				db.session.commit()
-				for rob in robots:
-					print "%s:%s" %(robot.alias,robot.status)
-			elif (output==5):
-				print 'Rfcomm release procedure failed'
-				print 'Device dev path probably non-existent'
-				robot = Robot.query.filter_by(user_id=uid).first()
-				robots = Robot.query.all()
-				robot.status="inactive"
-				db.session.commit()
-				for rob in robots:
-					print "%s:%s" %(robot.alias,robot.status)
-			elif (output==6):
-				print 'Bluetooth client ping failed'
-				print 'Please make sure client is powered on and close by'
-				robot = Robot.query.filter_by(user_id=uid).first()
-				robots = Robot.query.all()
-				robot.status="inactive"
-				db.session.commit()
-				for rob in robots:
-					print "%s:%s" %(robot.alias,robot.status)
-			elif (output==7):
-				print 'Bluetooth client not registered with buez'
-				print 'Host operation might have been compromised'
-				robot = Robot.query.filter_by(user_id=uid).first()
-				robots = Robot.query.all()
-				robot.status="inactive"
-				db.session.commit()
-				for rob in robots:
-					print "%s:%s" %(robot.alias,robot.status)
-			elif (output==8):
-				print 'Bluetooth unpairing procedure failed'
-				print 'Host operation might have been compromised'
-				robot = Robot.query.filter_by(user_id=uid).first()
-				robots = Robot.query.all()
-				robot.status="inactive"
-				db.session.commit()
-				for rob in robots:
-					print "%s:%s" %(robot.alias,robot.status)
+			# elif (output==1):
+			# 	print 'Makefile compilation failed'
+			# elif (output==2):
+			# 	print 'No bluetooth host device found'
+			# 	print 'Please plug in a USB bluetooth dongle'
+			# 	robot = Robot.query.filter_by(user_id=uid).first()
+			# 	robots = Robot.query.all()
+			# 	robot.status="inactive"
+			# 	db.session.commit()
+			# 	for rob in robots:
+			# 		print "%s:%s" %(robot.alias,robot.status)
+			# elif (output==3):
+			# 	print 'Bluetooth pairing procedure failed'
+			# 	print 'Please try uploading commands again'
+			# 	robot = Robot.query.filter_by(user_id=uid).first()
+			# 	robots = Robot.query.all()
+			# 	robot.status="inactive"
+			# 	db.session.commit()
+			# 	for rob in robots:
+			# 		print "%s:%s" %(robot.alias,robot.status)
+			# elif (output==4):
+			# 	print 'Rfcomm binding procedure failed'
+			# 	print 'Device dev path probably pre-assigned'
+			# 	robot = Robot.query.filter_by(user_id=uid).first()
+			# 	robots = Robot.query.all()
+			# 	robot.status="inactive"
+			# 	db.session.commit()
+			# 	for rob in robots:
+			# 		print "%s:%s" %(robot.alias,robot.status)
+			# elif (output==5):
+			# 	print 'Rfcomm release procedure failed'
+			# 	print 'Device dev path probably non-existent'
+			# 	robot = Robot.query.filter_by(user_id=uid).first()
+			# 	robots = Robot.query.all()
+			# 	robot.status="inactive"
+			# 	db.session.commit()
+			# 	for rob in robots:
+			# 		print "%s:%s" %(robot.alias,robot.status)
+			# elif (output==6):
+			# 	print 'Bluetooth client ping failed'
+			# 	print 'Please make sure client is powered on and close by'
+			# 	robot = Robot.query.filter_by(user_id=uid).first()
+			# 	robots = Robot.query.all()
+			# 	robot.status="inactive"
+			# 	db.session.commit()
+			# 	for rob in robots:
+			# 		print "%s:%s" %(robot.alias,robot.status)
+			# elif (output==7):
+			# 	print 'Bluetooth client not registered with buez'
+			# 	print 'Host operation might have been compromised'
+			# 	robot = Robot.query.filter_by(user_id=uid).first()
+			# 	robots = Robot.query.all()
+			# 	robot.status="inactive"
+			# 	db.session.commit()
+			# 	for rob in robots:
+			# 		print "%s:%s" %(robot.alias,robot.status)
+			# elif (output==8):
+			# 	print 'Bluetooth unpairing procedure failed'
+			# 	print 'Host operation might have been compromised'
+			# 	robot = Robot.query.filter_by(user_id=uid).first()
+			# 	robots = Robot.query.all()
+			# 	robot.status="inactive"
+			# 	db.session.commit()
+			# 	for rob in robots:
+			# 		print "%s:%s" %(robot.alias,robot.status)
 		except Exception,e:
 			# if an exception is caught while pairing or dev attaching, the associated
 			# robot and macid are flushed to maintain database and device listing integrity.

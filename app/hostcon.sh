@@ -527,20 +527,27 @@ function linuxpandb {
 		if [ -z "$devfind" ]; then
 			echo "Starting pairing process:"
 			# pair to the passed macid variable.
-			if [ -f /var/lib/bluetooth/$hciuid/linkkeys ]; then
-				keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
-				if [ -z "$keychck" ]; then
-					echo 1234 | bluez-simple-agent $hcinum $uid
-					exstat=$?
-					# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
-					if [ "$exstat" = "0" ]; then 
-						echo $uid "paired"
+			hciuid=$(hciconfig | grep -o ..:..:..:..:..:..)
+			echo "Checking if $uid previously paired to $hciuid"
+			if [ ! -z $hciuid ]; then
+				if [ -f /var/lib/bluetooth/$hciuid/linkkeys ]; then
+					keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
+					if [ -z "$keychck" ]; then
+						echo 1234 | bluez-simple-agent $hciuid $uid
+						exstat=$?
+						# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
+						if [ "$exstat" = "0" ]; then 
+							echo $uid "paired"
+						else
+							error+=(18)
+						fi
 					else
-						error+=(18)
+						echo $uid "previously paired"
 					fi
-				else
-					echo $uid "previously paired"
 				fi
+			else
+				echo "No host HCI device available"
+				error+=(26)
 			fi
 			# rfchck conditional checks if the passed dev device has already been
 			# bound. It releases and binds the passed macid if it has.
@@ -629,6 +636,7 @@ function errorcatch {
 				"23" ) echo "error 23";;
 				"24" ) echo "error 24";;
 				"25" ) echo "error 25";;
+				"26" ) echo "error 26";;
 			esac
 			if [ "$e" != 0 ]; then
 				errorcount=$(($errorcount+1))
