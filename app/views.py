@@ -36,7 +36,7 @@ def bluetooth():
 def reset():
 	user = g.user
 	robot = Robot.query.filter_by(user_id=user.id).first()
-	if sketchupl('../data/sketches/StandardFirmata/'):
+	if sketchupl('../data/sketches/Blink/'):
 		flash(str(robot.alias)+' has been reset!')
 	else:
 		flash(str(robot.alias)+' reset failed!')

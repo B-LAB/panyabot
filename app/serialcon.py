@@ -45,24 +45,25 @@ else:
 
 def sketchupl(sketchpath):
 	if os.path.exists(sketchpath):
-		pass
-	try:
-		if (host=="win"):
-			output=subprocess.call([rfpath,'-h',host,'-s',sketchpath, '-r'], shell=True)
-			print '********************************************************************'
-			print output
-			print '********************************************************************'
-		else:
-			output=subprocess.call(['%s -h %s -s %s -r' %(rfpath,host,sketchpath)], shell=True)
-			print '********************************************************************'
-			print output
-			print '********************************************************************'
-		return True
-	except Exception,e:
-		print "USB reset of robot failed"
-		print str(e)
-		return False
-
+		errorkey=int(time.time())
+		try:
+			if (host=="win"):
+				output=subprocess.call([rfpath,'-h',host,'-s',sketchpath, '-r', '-e', errorkey], shell=True)
+				print '********************************************************************'
+				print output
+				print '********************************************************************'
+			else:
+				output=subprocess.call(['%s -h %s -s %s -r -e %s' %(rfpath,host,sketchpath,errorkey)], shell=True)
+				print '********************************************************************'
+				print output
+				print '********************************************************************'
+			return True
+		except Exception,e:
+			print "USB reset of robot failed"
+			print str(e)
+			return False
+	else:
+		print "Firmware specified does not exist"
 
 def leginquire():
 	# bluetooth legacy discovery api endpoint. This endpoint is used by the
@@ -121,20 +122,20 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 	# /var/lib/bluetooth/{local host macid}/linkkeys. This flushing might be overkill
 	# but it ensures that all host-robot sessions are handled robustly.
 	if flush is None:
+		errorkey=int(time.time())
 		try:
 			if (host=="win"):
-				output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-h',host, '-p'], shell=True)
-				print '********************************************************************'
-				print output
-				print '********************************************************************'
+				output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-h',host, '-p','-e',errorkey], shell=True)
 			else:
-				output=subprocess.call(['%s -u %s -d %s -h %s -p' %(rfpath,macid,rfcset,host)], shell=True)
-				print '********************************************************************'
-				print output
-				print '********************************************************************'
+				output=subprocess.call(['%s -u %s -d %s -h %s -p -e %s' %(rfpath,macid,rfcset,host,errorkey)], shell=True)
+			print '********************************************************************'
+			print output
+			print '********************************************************************'
 			if (output==0):
 				print 'Starting command upload procedure'
 				datasend(macid,alias,unick,commands,rfcset,uid)
+			else:
+				print 'Subprocess call complete with '+str(output)+' errors'
 			# elif (output==1):
 			# 	print 'Makefile compilation failed'
 			# elif (output==2):
@@ -205,15 +206,25 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 			# robot and macid are flushed to maintain database and device listing integrity.
 			# the associated robot status is set to inactive to allow queued connections to
 			# be handled.
+			errorkey=int(time.time())
 			robot = Robot.query.filter_by(user_id=uid).first()
 			robot.status="inactive"
 			db.session.commit()
 			print "Error Binding RFCOMM Device"
 			# the only error condition that necessitates an automatic client flush
 			if (host=="win"):
-				output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-f','-h',host], shell=True)
+				output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-f','-h',host,'-e',errorkey], shell=True)
 			else:
-				output=subprocess.call(['%s -u %s -d %s -f -h %s' %(rfpath,macid,rfcset,host)], shell=True)
+				output=subprocess.call(['%s -u %s -d %s -f -h %s -e %s' %(rfpath,macid,rfcset,host,errorkey)], shell=True)
+			print '********************************************************************'
+			print output
+			print '********************************************************************'
+			if (output==0):
+				print 'Starting command upload procedure'
+				datasend(macid,alias,unick,commands,rfcset,uid)
+			else:
+				print 'subprocess call complete with '+str(output)+' errors'
+			print "STACKTRACE:"
 			print str(e)
 	else:
 		try:
@@ -236,6 +247,7 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 			print str(e)
 		# ensure that robot status is always set back to inactive to ensure subsequent client
 		# connections
+		print 'Clearing out status codes'
 		robot = Robot.query.filter_by(user_id=uid).first()
 		robots = Robot.query.all()
 		robot.status="inactive"
@@ -318,12 +330,11 @@ def portsetup(commands):
 			# Wait for 5 seconds and check again if a host-client bluetooth connection is up
 			# If elapsed_time is greater than 10 seconds then timeout the process and prompt
 			# for database check for any errors found
-			print "Queuing bluetooth upload",
+			print "Queuing bluetooth upload"
 			Qflag = True
 			queue_start = time.time()
-			elapsed_time = time.time() - queue_start
+			elapsed_time = 0
 			while (elapsed_time < 5) and not (Qout):
-				print ".",
 				if (rob.status == "inactive"):
 					print 'Slot in queue found'
 					Qout = True
@@ -337,7 +348,7 @@ def portsetup(commands):
 		if Qout and not Tout:
 			Qflag = False
 		else:
-			print "Please check database value for the key %s:%s. Database may have been compromised" %(rob.alias,rob.status)
+			print "Please check database value for the key %s:%s" %(rob.alias,rob.status)
 	if not Qflag:
 		rfcset=rfcommset(robots)
 		robot.status=rfcset

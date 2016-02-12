@@ -25,6 +25,9 @@ while [ "$1" != "" ]; do
 		-s | --sketchpath )		shift
 								skpath=$1
 								;;
+		-e | --errorkey )		shift
+								errorkey=$1
+								;;
 		-r | --reinstall )		reinstall="reinstall"
 								;;
 		-f | --flush )			flush="flush"
@@ -144,7 +147,7 @@ function optexecute {
 function linuxhciallup {
 	# pull all available interfaces up.
 
-	echo "Pulling up all HCI devices"
+	echo "pulling up all HCI devices"
 	hcicnfvar=($(hciconfig | grep -o "hci."))
 	hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
 	hcitllist=($(echo "${hcitlvar#$'\n'}"))
@@ -179,7 +182,6 @@ function linuxhciallup {
 							error+=(0)
 						else
 							# hciconfig reset failed
-							echo "error while resetting ${hci[$n]}"
 							error+=(1)
 						fi
 					fi
@@ -201,7 +203,6 @@ function linuxhciallup {
 				error+=(0)
 			else
 				# hciconfig reset failed
-				echo "error while resetting ${hci[$n]}"
 				error+=(2)
 			fi
 		done
@@ -211,7 +212,7 @@ function linuxhciallup {
 			echo "all interfaces are already up"
 		fi
 	else
-		echo "there are no HCI devices connected"
+		# no host HCI interfaces available, no critical error
 		error+=(3)
 	fi
 
@@ -267,8 +268,7 @@ function linuxhciswitch {
 							hcitltotal=$((${#hcitllist[@]}/2))
 							error+=(0)
 						else
-							# Hciconfig reset failed
-							echo "error while switching from hci$currpathnum to hci$posspathnum"
+							# HCI switch failed
 							error+=(4)
 						fi
 					fi
@@ -294,8 +294,7 @@ function linuxhciswitch {
 							hcitltotal=$((${#hcitllist[@]}/2))
 							error+=(0)
 						else
-							# hciconfig reset failed
-							echo "error while switching from hci$currpathnum to hci$posspathnum"
+							# HCI switch failed
 							error+=(5)
 						fi
 					else
@@ -312,8 +311,7 @@ function linuxhciswitch {
 							hcitltotal=$((${#hcitllist[@]}/2))
 							error+=(0)
 						else
-							# hciconfig reset failed
-							echo "error while switching from hci$currpathnum to hci$posspathnum"
+							# HCI switch failed
 							error+=(6)
 						fi
 					fi
@@ -324,10 +322,10 @@ function linuxhciswitch {
 			linuxhciprimer
 		fi
 	elif [ "$cn" = 1 ]; then
-		# only one host bluetooth device found
+		# only one host HCI interface found
 		error+=(7)
 	else
-		# no host bluetooth device found
+		# no host HCI interfaces found, non-critical
 		error+=(8)
 	fi
 }
@@ -361,11 +359,11 @@ function linuxhciprimer {
 			fi
 		done
 	elif [ "$tl" -eq 0 ]; then
-		echo "no HCI interfaces are up"
-		error+=(24)
+		# no HCI interface are up. Check if any are available in next conditional
+		error+=(23)
 		if [ "$cn" -eq 0 ]; then
-			echo "no HCI interfaces available"
-			error+=(25)
+			# no HCI interface are available. Force exit
+			error+=(24)
 			errorcatch
 		fi
 	else
@@ -381,8 +379,7 @@ function linuxhciprimer {
 					hcitltotal=$((${#hcitllist[@]}/2))
 					error+=(0)
 				else
-					# hciconfig shutoff failed
-					echo "error while shutting ${hcicnfvar[$c]}"
+					# HCI interface pull down failed
 					error+=(9)
 				fi
 			fi
@@ -398,8 +395,7 @@ function linuxhciprimer {
 			hcitltotal=$((${#hcitllist[@]}/2))
 			error+=(0)
 		else
-			# hciconfig shutoff failed
-			echo "error while pulling up hci$posspathnum"
+			# HCI interface pull up failed
 			error+=(10)
 		fi
 	fi
@@ -429,13 +425,11 @@ function linuxflush {
 			if [ "$exstat" = "0" ]; then 
 				echo "$uid unbound from $host host"
 			else
-				# Rfcomm release failed. return exit code to shell or subprocess call
-				# exit 5
+				# Rfcomm release failed
 				error+=(11)
 			fi
 		else
 			# Rfcomm device path found ($matchuid) doesn't match the app assigned value ($devfind)
-			# exit 11
 			error+=(12)
 		fi
 	fi
@@ -444,16 +438,14 @@ function linuxflush {
 	# determine macid of host bluetooth device to unpair client
 	hciuid=$(hciconfig | grep -o ..:..:..:..:..:..)
 	if [ -z "$hciuid" ]; then
-		# no host bluetooth mac address found
-		# exit 2
+		# no host HCI interface found, critical: force script exit
 		error+=(13)
+		errorcatch
 	else
 		# pair to the passed macid variable.
 		if [ -f /var/lib/bluetooth/$hciuid/linkkeys ]; then
 			keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
 			if [ -z "$keychck" ]; then
-				echo $uid "not previously paired to"
-				# exit 7
 				error+=(14)
 			else
 				bluez-test-device remove $uid
@@ -462,8 +454,6 @@ function linuxflush {
 				if [ "$exstat" = "0" ]; then 
 					echo "Unpairing" $uid "successful"
 				else
-					echo "Unpairing" $uid "not successful"
-					# exit 8
 					error+=(15)
 				fi
 			fi
@@ -487,7 +477,7 @@ function linuxreinstall {
 		for dev in ${devpaths[@]}; do
 			# use udevadm tool to determine if dev paths have Arduino in their metadata
 			ardcheck=$(udevadm info -a -p ${dev#./sys} | grep Arduino)
-			# if there are arduino associated dev paths attempt to upload the sketch
+			# if there are arduino associated dev paths attempt to upload the firmware
 			if [ ! -z "$ardcheck" ]; then
 				target=/dev/$(echo $dev | grep -o ttyACM.)
 				echo "Dev path:"$dev" Dev num:"$devnum" Target:"$target
@@ -498,14 +488,20 @@ function linuxreinstall {
 				exstat=$?
 				# $? is a shell status code that returns the previous commands exit code
 				if [ "$exstat" = "0" ]; then 
-					# Sketch upload was successful
-					error+=(16)
+					# firmware upload was successful
+					error+=(0)
 				else
-					# Sketch upload was unsuccessful
-					error+=(17)
+					# firmware upload was unsuccessful
+					error+=(16)
 				fi
+			else
+				# no Arduinos found attached to USB ports
+				error+=(28)
 			fi
 		done
+	else
+		# no USB devices attached to host
+		error+=(27)
 	fi
 }
 
@@ -524,12 +520,12 @@ function linuxpandb {
 		# devfind conditional checks if submitted UID is already registered on rfcomm,
 		# if not it pairs to and binds the passed macid variable
 		devfind=$(rfcomm | grep $uid)
+		hciuid=$(hciconfig | grep -o ..:..:..:..:..:..)
 		if [ -z "$devfind" ]; then
 			echo "Starting pairing process:"
 			# pair to the passed macid variable.
-			hciuid=$(hciconfig | grep -o ..:..:..:..:..:..)
-			echo "Checking if $uid previously paired to $hciuid"
 			if [ ! -z $hciuid ]; then
+				echo "Checking if $uid previously paired to $hciuid"
 				if [ -f /var/lib/bluetooth/$hciuid/linkkeys ]; then
 					keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
 					if [ -z "$keychck" ]; then
@@ -538,16 +534,18 @@ function linuxpandb {
 						# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
 						if [ "$exstat" = "0" ]; then 
 							echo $uid "paired"
+							error+=(0)
 						else
-							error+=(18)
+							# pairing to $uid failed
+							error+=(17)
 						fi
 					else
 						echo $uid "previously paired"
 					fi
 				fi
 			else
-				echo "No host HCI device available"
-				error+=(26)
+				# no host HCI interfaces available
+				error+=(25)
 			fi
 			# rfchck conditional checks if the passed dev device has already been
 			# bound. It releases and binds the passed macid if it has.
@@ -559,49 +557,57 @@ function linuxpandb {
 				exstat=$?
 				# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
 				if [ "$exstat" = "0" ]; then 
-					echo $uid "bound to /dev/"devassgn
+					echo $uid "bound to /dev/$devassgn"
+					error+=(0)
 				else
-					error+=(19)
+					# binding to $uid to /dev/$devassgn failed
+					error+=(18)
 				fi
 			else
 				prebound=$(echo $rfchck | grep -o "..:..:..:..:..:..")
-				echo "/dev/"$devassgn "already bound to" $prebound
-				error+=(20)
+				# /dev/$devassgn already bound to $prebound
+				error+=(19)
 			fi
 		else
 			# client has already been bound to
 			# devassgnchck determines if the passed devassgn value
 			devassgnchck=$(echo $devfind | grep -o "rfcomm.")
 			if [ "$devassgnchck" = "$devassgn" ]; then
-				echo $(hcitool name $uid) "already bound to /dev/"$devassgn
+				echo $(hcitool name $uid) "already bound to /dev/$devassgn"
 				echo "Performing pairing status validation"
-				if [ -f /var/lib/bluetooth/$hciuid/linkkeys ]; then
-					keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
-					if [ -z "$keychck" ]; then
-						echo 1234 | bluez-simple-agent $hcinum $uid
-						exstat=$?
-						# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
-						if [ "$exstat" = "0" ]; then 
-							echo $uid "paired"
+				if [ ! -z $hciuid ]; then
+					if [ -f /var/lib/bluetooth/$hciuid/linkkeys ]; then
+						keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
+						if [ -z "$keychck" ]; then
+							echo 1234 | bluez-simple-agent $hcinum $uid
+							exstat=$?
+							# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
+							if [ "$exstat" = "0" ]; then 
+								echo "$uid paired"
+								error+=(0)
+							else
+								# bluetooth pairing to $uid failed
+								error+=(20)
+							fi
 						else
-							error+=(21)
+							echo "$uid previously paired"
 						fi
-					else
-						echo $uid "previously paired"
 					fi
+				else
+					# no host HCI interfaces available
+					error+=(26)
 				fi
 			else
-				echo $uid "already assigned to" $devassgnchck
-				echo "Not able to reassign to" $devassgn
-				error+=(22)
+				# $uid already assigned to $devassgnchck, won't force assignment to $devassgn
+				error+=(21)
 			fi
 		fi
 		# Pairing and Binding process went through flawlessly
 		rfcomm
 		error+=(0)
 	else
-		# bluetooth ping failed to find passed macid. return exit code to shell or subprocess call.
-		error+=(23)
+		# bluetooth ping failed to find passed macid.
+		error+=(22)
 	fi
 }
 
@@ -610,33 +616,35 @@ function errorcatch {
 	if [ "$host" = "linux" ]; then
 		for e in ${error[@]}; do
 			case $e in
-				"0" ) echo "operation success";;
-				"1" ) echo "error 1";;
-				"2" ) echo "error 2";;
-				"3" ) echo "error 3";;
-				"4" ) echo "error 4";;
-				"5" ) echo "error 5";;
-				"6" ) echo "error 6";;
-				"7" ) echo "error 7";;
-				"8" ) echo "error 8";;
-				"9" ) echo "error 9";;
-				"10" ) echo "error 10";;
-				"11" ) echo "error 11";;
-				"12" ) echo "error 12";;
-				"13" ) echo "error 13";;
-				"14" ) echo "error 14";;
-				"15" ) echo "error 15";;
-				"16" ) echo "error 16";;
-				"17" ) echo "error 17";;
-				"18" ) echo "error 18";;
-				"19" ) echo "error 19";;
-				"20" ) echo "error 20";;
-				"21" ) echo "error 21";;
-				"22" ) echo "error 22";;
-				"23" ) echo "error 23";;
-				"24" ) echo "error 24";;
-				"25" ) echo "error 25";;
-				"26" ) echo "error 26";;
+				"0" ) echo "operation successful";;
+				"1" ) echo "error 1: error while resetting ${hci[$n]}";;
+				"2" ) echo "error 2: error while resetting ${hci[$n]}";;
+				"3" ) echo "error 3: no host HCI interfaces available";;
+				"4" ) echo "error 4: error while switching from hci$currpathnum to hci$posspathnum";;
+				"5" ) echo "error 5: error while switching from hci$currpathnum to hci$posspathnum";;
+				"6" ) echo "error 6: error while switching from hci$currpathnum to hci$posspathnum";;
+				"7" ) echo "error 7: one HCI interface available, HCI switch cannot be done";;
+				"8" ) echo "error 8: no host HCI interfaces available";;
+				"9" ) echo "error 9: error pulling down ${hcicnfvar[$c]} interface";;
+				"10" ) echo "error 10: error while pulling up hci$posspathnum";;
+				"11" ) echo "error 11: rfcomm release of /dev/$devassgn failed";;
+				"12" ) echo "error 12: Device path assigned to $matchuid match the app assigned value $devfind";;
+				"13" ) echo "error 13: no HCI interfaces available, forced script exit";;
+				"14" ) echo "error 14: $uid not previously paired to";;
+				"15" ) echo "error 15: unpairing $uid not successful";;
+				"16" ) echo "error 16: $(basename $skpath) firmware upload was unsuccessful";;
+				"17" ) echo "error 17: bluetooth pairing to $uid failed";;
+				"18" ) echo "error 18: binding to $uid to /dev/$devassgn failed";;
+				"19" ) echo "error 19: /dev/$devassgn already bound to $prebound";;
+				"20" ) echo "error 20: bluetooth pairing to $uid failed";;
+				"21" ) echo "error 21: $uid already assigned to $devassgnchck";;
+				"22" ) echo "error 22: bluetooth pinging $uid failed ";;
+				"23" ) echo "error 23: no HCI interfaces are up";;
+				"24" ) echo "error 24: no host HCI interfaces available, forced script exit";;
+				"25" ) echo "error 25: no host HCI interfaces available";;
+				"26" ) echo "error 26: no host HCI interfaces available";;
+				"27" ) echo "error 27: no USB devices attached to host";;
+				"28" ) echo "error 28: no Arduinos attached to host";;
 			esac
 			if [ "$e" != 0 ]; then
 				errorcount=$(($errorcount+1))
@@ -646,6 +654,21 @@ function errorcatch {
 		done
 		if [ "$errorcount" -gt 0 ]; then
 			echo "$errorcount errors occured"
+			homedir=$(dirname $(pwd))
+			if [ ! -f $homedir/data/error.log ]; then
+				touch $homedir/data/error.log
+			fi
+			echo -e "{\"error\": {\"key\":\""$errorkey"\", " >> $homedir/data/error.log
+				for err in "${error[@]}"; do
+					jsonend=$errorcount
+					for (( j="$jsonend"; j>=1; j-- )); do
+						if [ "$j" != 1 ]; then
+							echo -e "\"code\": \""$err"\"," >> $homedir/data/error.log
+						else
+							echo -e "\"code\": \""$err"\"}}" >> $homedir/data/error.log
+						fi
+					done
+				done
 			exit $errorcount
 		else
 			echo "no errors occured"
