@@ -25,6 +25,9 @@ while [ "$1" != "" ]; do
 		-s | --sketchpath )		shift
 								skpath=$1
 								;;
+		-c | --currentuser )	shift
+								cuser=$1
+								;;
 		-e | --errorkey )		shift
 								errorkey=$1
 								;;
@@ -206,6 +209,9 @@ function linuxhciallup {
 				error+=(2)
 			fi
 		done
+	else
+		# no HCI interfaces available
+		error+=(29)
 	fi
 	if [ "$cn" -ne 0 ]; then
 		if [ "$tl" -eq "$cn" ]; then
@@ -401,7 +407,27 @@ function linuxhciprimer {
 	fi
 }
 
+function linuxhcicheck {
+	echo "Searching for HCI device"
+	hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
+	hcitllist=($(echo "${hcitlvar#$'\n'}"))
+	# http://bash.cyberciti.biz/guide/Perform_arithmetic_operations
+	hcitltotal=$((${#hcitllist[@]}/2))
+	if [ "$hcitltotal" -eq 1 ]; then
+		echo "${hcitltotal} HCI interface found"
+	elif [ "$hcitltotal" -eq 0 ]; then
+		echo "${hcitltotal} HCI interfaces found"
+		echo "Will try to set one up now"
+		linuxhciprimer
+	else
+		echo "${hcitltotal} HCI interfaces are up"
+		echo "Will pull down extra interfaces and reset for one"
+		linuxhciprimer
+	fi
+}
+
 function linuxflush {
+	linuxhcicheck
 	# begin flushing process
 	echo "Starting flush on linux host"
 	echo "Starting release process:"
@@ -506,6 +532,7 @@ function linuxreinstall {
 }
 
 function linuxpandb {
+	linuxhcicheck
 	echo "Pairing and Binding"
 	# begin pairing and binding process
 	# restart systemd dbus and bluetooth services as a fail safe check
@@ -645,6 +672,7 @@ function errorcatch {
 				"26" ) echo "error 26: no host HCI interfaces available";;
 				"27" ) echo "error 27: no USB devices attached to host";;
 				"28" ) echo "error 28: no Arduinos attached to host";;
+				"29" ) echo "error 29: no host HCI interfaces available";;
 			esac
 			if [ "$e" != 0 ]; then
 				errorcount=$(($errorcount+1))
@@ -652,26 +680,57 @@ function errorcatch {
 				errorcount=$(($errorcount+0))
 			fi
 		done
+		homedir=$(dirname $(pwd))
 		if [ "$errorcount" -gt 0 ]; then
 			echo "$errorcount errors occured"
-			homedir=$(dirname $(pwd))
-			if [ ! -f $homedir/data/error.log ]; then
-				touch $homedir/data/error.log
+			if [ ! -f $homedir/data/$cuser/error.log ]; then
+				touch $homedir/data/$cuser/error.log
+			else
+				rm $homedir/data/$cuser/error.log
+				touch $homedir/data/$cuser/error.log
 			fi
-			echo -e "{\"error\": {\"key\":\""$errorkey"\", " >> $homedir/data/error.log
-				for err in "${error[@]}"; do
-					jsonend=$errorcount
-					for (( j="$jsonend"; j>=1; j-- )); do
-						if [ "$j" != 1 ]; then
-							echo -e "\"code\": \""$err"\"," >> $homedir/data/error.log
-						else
-							echo -e "\"code\": \""$err"\"}}" >> $homedir/data/error.log
+			if [ "$flush" = "" ]; then
+				echo -e "[{\"key\":\""$errorkey"\", \"code\": [" >> $homedir/data/$cuser/error.log
+				if [ "$errorcount" -gt 1 ]; then
+					eind=$(($errorcount-1))
+					while [ "$eind" -ge 1 ]; do
+						err="${error["$eind"]}"
+						echo -e "\""$err"\"," >> $homedir/data/$cuser/error.log
+						eind=$(($eind-1))
+						if [ "$eind" -eq 0 ]; then
+							err="${error[0]}"
+							echo -e "\""$err"\"]}]" >> $homedir/data/$cuser/error.log
 						fi
 					done
-				done
-			exit $errorcount
+				else
+					echo -e "\""${error[0]}"\"]}]" >> $homedir/data/$cuser/error.log
+				fi
+				exit $errorcount
+			else
+				if [ -f $homedir/data/$cuser/error.log ]; then
+					echo -e "[{\"key\":\""$errorkey"\", \"code\": [" >> $homedir/data/$cuser/error.log
+					if [ "$errorcount" -gt 1 ]; then
+						eind=$(($errorcount-1))
+						while [ "$eind" -ge 1 ]; do
+							err="${error["$eind"]}"
+							echo -e "\""$err"\"," >> $homedir/data/$cuser/error.log
+							eind=$(($eind-1))
+							if [ "$eind" -eq 0 ]; then
+								err="${error[0]}"
+								echo -e "\""$err"\"]}]" >> $homedir/data/$cuser/error.log
+							fi
+						done
+					else
+						echo -e "\""${error[0]}"\"]}]" >> $homedir/data/$cuser/error.log
+					fi
+					exit $errorcount
+				fi
+			fi
 		else
 			echo "no errors occured"
+			if [ -f $homedir/data/$cuser/error.log ]; then
+				rm $homedir/data/$cuser/error.log
+			fi
 			exit 0
 		fi
 	fi
@@ -694,7 +753,7 @@ function linuxscripts {
 	while [ "$1" != "" ]; do
 		case $1 in
 			"reinstall" ) linuxreinstall;;
-			"flush" ) linuxflush;;
+			"flush" )  linuxflush;;
 			"pairbind" ) linuxpandb;;
 			"allup" ) linuxhciallup;;
 			"primehci" ) linuxhciprimer;;

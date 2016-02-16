@@ -25,8 +25,8 @@ def user_loader(user_id):
 @app.route('/bluetooth', methods=['POST','GET'])
 def bluetooth():
 	if request.method == 'POST':
-		parseblocks(request.json['panya'])
-		return jsonify({'status':'OK'})
+		response=parseblocks(request.json['panya'])
+		return jsonify({'status': response})
 	if request.method == 'GET':
 		return jsonify({
 		'devices': leginquire()

@@ -43,27 +43,14 @@ else:
 	import bluetooth
 	host="win"
 
-def sketchupl(sketchpath):
-	if os.path.exists(sketchpath):
-		errorkey=int(time.time())
-		try:
-			if (host=="win"):
-				output=subprocess.call([rfpath,'-h',host,'-s',sketchpath, '-r', '-e', errorkey], shell=True)
-				print '********************************************************************'
-				print output
-				print '********************************************************************'
-			else:
-				output=subprocess.call(['%s -h %s -s %s -r -e %s' %(rfpath,host,sketchpath,errorkey)], shell=True)
-				print '********************************************************************'
-				print output
-				print '********************************************************************'
-			return True
-		except Exception,e:
-			print "USB reset of robot failed"
-			print str(e)
-			return False
-	else:
-		print "Firmware specified does not exist"
+# Uncomment the following lines to enable BLE search
+# def bleinquire():
+# 	global resp
+# 	global i
+# 	service = DiscoveryService()
+# 	devices = service.discover(2)
+# 	for addr, name in devices.items():
+# 		resp.append({'mac*':str(addr),'name*':str(name)})
 
 def leginquire():
 	# bluetooth legacy discovery api endpoint. This endpoint is used by the
@@ -114,6 +101,57 @@ def sdpbrowse(macid=None):
 	    print("    service id:  %s "% svc["service-id"])
 	    print()
 
+def messagereturn(cuser,errorkey):
+	errorfile = os.path.join(sdir,g.user.nickname,'error.log')
+	json_data=[]
+	messresp = []
+	errordict = { 1 : 'HCI reset error', 2 : 'HCI reset error', 3 : 'No HCI available',
+					4 : 'HCI switch error', 5 : 'HCI switch error', 6 : 'HCI switch error',
+					7 : 'HCI switch error', 8 : 'No HCI available', 9 : 'HCI pull down error',
+					10 : 'HCI pull up error', 11 : 'Device release error', 12 : 'Device assignment error',
+					13 : 'No HCI available', 14 : 'Bluetooth unpair error', 15 : 'Device unpair error',
+					16 : 'Firmware upload error', 17 : 'Bluetooth pairing error', 18 : 'Device binding failed',
+					19 : 'Device binding error', 20 : 'Bluetooth pairing error', 21 : 'Device binding failed',
+					22 : 'Device not found', 23 : 'No HCI interfaces up', 24 : 'No HCI available', 25 : 'No HCI available',
+					26 : 'No HCI available', 27 : 'No USB devices found', 28 : 'No Arduinos found', 29: 'No HCI available'
+					}
+	# remember to include stacktrace error if error not within range
+	# print 'CRITICAL ERROR: UNEXPECTED ERROR OCCURRED!'
+	# print "STACKTRACE:"
+	if os.path.exists(errorfile):
+		with open(errorfile,'r') as json_target:
+			json_data = json.load(json_target)
+			for i, val in enumerate(json_data):
+				if (int(json_data[i]['key']) == int(errorkey)):
+					messresp=json.dumps(json_data[i])
+		return messresp
+	else:
+		return json.dumps(messresp)
+
+def sketchupl(sketchpath):
+	if os.path.exists(sketchpath):
+		errorkey=int(time.time())
+		cuser=g.user.nickname
+		if (host=="win"):
+			output=subprocess.call([rfpath,'-h',host,'-s',sketchpath, '-r', '-e', errorkey,'-c',cuser], shell=True)
+			print '********************************************************************'
+			print output
+			print '********************************************************************'
+		else:
+			output=subprocess.call(['%s -h %s -s %s -r -e %s -c %s' %(rfpath,host,sketchpath,errorkey,cuser)], shell=True)
+			print '********************************************************************'
+			print output
+			print '********************************************************************'
+		if (output==0):
+			print 'Subprocess call complete with '+str(output)+' errors'
+			return messagereturn(cuser,errorkey)
+		else:
+			print "Error uploading firmware to devices"
+			print 'ERROR 4: Subprocess call complete with '+str(output)+' errors'
+			return messagereturn(cuser,errorkey)
+	else:
+		print "Firmware specified does not exist"
+
 def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=None):
 	# this function takes the supplied macid passing it to the bash/shell script to
 	# pair to using the simple-bluez-agent tool and attach said macid to a 
@@ -121,139 +159,58 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 	# flushed i.e. released from rfcomm and the pairing entry deleted from 
 	# /var/lib/bluetooth/{local host macid}/linkkeys. This flushing might be overkill
 	# but it ensures that all host-robot sessions are handled robustly.
+	errorkey=int(time.time())
+	cuser=g.user.nickname
 	if flush is None:
-		errorkey=int(time.time())
-		try:
-			if (host=="win"):
-				output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-h',host, '-p','-e',errorkey], shell=True)
-			else:
-				output=subprocess.call(['%s -u %s -d %s -h %s -p -e %s' %(rfpath,macid,rfcset,host,errorkey)], shell=True)
-			print '********************************************************************'
-			print output
-			print '********************************************************************'
-			if (output==0):
-				print 'Starting command upload procedure'
-				datasend(macid,alias,unick,commands,rfcset,uid)
-			else:
-				print 'Subprocess call complete with '+str(output)+' errors'
-			# elif (output==1):
-			# 	print 'Makefile compilation failed'
-			# elif (output==2):
-			# 	print 'No bluetooth host device found'
-			# 	print 'Please plug in a USB bluetooth dongle'
-			# 	robot = Robot.query.filter_by(user_id=uid).first()
-			# 	robots = Robot.query.all()
-			# 	robot.status="inactive"
-			# 	db.session.commit()
-			# 	for rob in robots:
-			# 		print "%s:%s" %(robot.alias,robot.status)
-			# elif (output==3):
-			# 	print 'Bluetooth pairing procedure failed'
-			# 	print 'Please try uploading commands again'
-			# 	robot = Robot.query.filter_by(user_id=uid).first()
-			# 	robots = Robot.query.all()
-			# 	robot.status="inactive"
-			# 	db.session.commit()
-			# 	for rob in robots:
-			# 		print "%s:%s" %(robot.alias,robot.status)
-			# elif (output==4):
-			# 	print 'Rfcomm binding procedure failed'
-			# 	print 'Device dev path probably pre-assigned'
-			# 	robot = Robot.query.filter_by(user_id=uid).first()
-			# 	robots = Robot.query.all()
-			# 	robot.status="inactive"
-			# 	db.session.commit()
-			# 	for rob in robots:
-			# 		print "%s:%s" %(robot.alias,robot.status)
-			# elif (output==5):
-			# 	print 'Rfcomm release procedure failed'
-			# 	print 'Device dev path probably non-existent'
-			# 	robot = Robot.query.filter_by(user_id=uid).first()
-			# 	robots = Robot.query.all()
-			# 	robot.status="inactive"
-			# 	db.session.commit()
-			# 	for rob in robots:
-			# 		print "%s:%s" %(robot.alias,robot.status)
-			# elif (output==6):
-			# 	print 'Bluetooth client ping failed'
-			# 	print 'Please make sure client is powered on and close by'
-			# 	robot = Robot.query.filter_by(user_id=uid).first()
-			# 	robots = Robot.query.all()
-			# 	robot.status="inactive"
-			# 	db.session.commit()
-			# 	for rob in robots:
-			# 		print "%s:%s" %(robot.alias,robot.status)
-			# elif (output==7):
-			# 	print 'Bluetooth client not registered with buez'
-			# 	print 'Host operation might have been compromised'
-			# 	robot = Robot.query.filter_by(user_id=uid).first()
-			# 	robots = Robot.query.all()
-			# 	robot.status="inactive"
-			# 	db.session.commit()
-			# 	for rob in robots:
-			# 		print "%s:%s" %(robot.alias,robot.status)
-			# elif (output==8):
-			# 	print 'Bluetooth unpairing procedure failed'
-			# 	print 'Host operation might have been compromised'
-			# 	robot = Robot.query.filter_by(user_id=uid).first()
-			# 	robots = Robot.query.all()
-			# 	robot.status="inactive"
-			# 	db.session.commit()
-			# 	for rob in robots:
-			# 		print "%s:%s" %(robot.alias,robot.status)
-		except Exception,e:
-			# if an exception is caught while pairing or dev attaching, the associated
-			# robot and macid are flushed to maintain database and device listing integrity.
-			# the associated robot status is set to inactive to allow queued connections to
-			# be handled.
-			errorkey=int(time.time())
+		if (host=="win"):
+			output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-h',host, '-p','-e',errorkey,'-c',cuser], shell=True)
+		else:
+			output=subprocess.call(['%s -u %s -d %s -h %s -p -e %s -c %s' %(rfpath,macid,rfcset,host,errorkey,cuser)], shell=True)
+		print '********************************************************************'
+		print output
+		print '********************************************************************'
+		if (output==0):
+			print 'Subprocess call complete with '+str(output)+' errors'
+			print 'Starting command upload procedure'
+			datasend(macid,alias,unick,commands,rfcset,uid)
+		else:
+			print "Error Binding RFCOMM Device"
+			print 'ERROR 1: Subprocess call complete with '+str(output)+' errors'
+			print 'Cleaning robot status key-value'
 			robot = Robot.query.filter_by(user_id=uid).first()
+			robots = Robot.query.all()
 			robot.status="inactive"
 			db.session.commit()
-			print "Error Binding RFCOMM Device"
-			# the only error condition that necessitates an automatic client flush
-			if (host=="win"):
-				output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-f','-h',host,'-e',errorkey], shell=True)
-			else:
-				output=subprocess.call(['%s -u %s -d %s -f -h %s -e %s' %(rfpath,macid,rfcset,host,errorkey)], shell=True)
-			print '********************************************************************'
-			print output
-			print '********************************************************************'
-			if (output==0):
-				print 'Starting command upload procedure'
-				datasend(macid,alias,unick,commands,rfcset,uid)
-			else:
-				print 'subprocess call complete with '+str(output)+' errors'
-			print "STACKTRACE:"
-			print str(e)
+			for rob in robots:
+				print "%s:%s" %(robot.alias,robot.status)
+			return messagereturn(cuser,errorkey)
 	else:
-		try:
-			# removed the automatic client flush to improve the web client speed.
-			# if (host=="win"):
-			# 	output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-f','-h',host], shell=True)
-			# 	print '********************************************************************'
-			# 	print output
-			# 	print '********************************************************************'
-			# else:
-			# 	output=subprocess.call(['%s -u %s -d %s -f -h %s' %(rfpath,macid,rfcset,host)], shell=True)
-			# 	print '********************************************************************'
-			# 	print output
-			# 	print '********************************************************************'
-			print "Skipping unpairing and release process"
-		except Exception,e:
-			# if an error occurs while trying to flush and no ORM-related error is provided
-			# a error state with the subprocess call can be assumed.
-			print "Error Releasing RFCOMM device!"
-			print str(e)
+		# removed the automatic client flush to improve the web client speed.
+		# try:
+		# 	if (host=="win"):
+		# 		output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-f','-h',host,'-e',errorkey,'-c',cuser], shell=True)
+		# 	else:
+		# 		output=subprocess.call(['%s -u %s -d %s -f -h %s -e %s -c %s' %(rfpath,macid,rfcset,host,errorkey,cuser)], shell=True)
+		# 	print '********************************************************************'
+		# 	print output
+		# 	print '********************************************************************'
+		# 	print "Skipping unpairing and release process"
+		# except Exception,e:
+		# 	if an error occurs while trying to flush and no ORM-related error is provided
+		# 	a error state with the subprocess call can be assumed.
+		# 	print "Error Releasing RFCOMM device!"
+		# 	print "STACKTRACE:"
+		# 	print str(e)
 		# ensure that robot status is always set back to inactive to ensure subsequent client
 		# connections
-		print 'Clearing out status codes'
+		print 'Cleaning robot status key-value'
 		robot = Robot.query.filter_by(user_id=uid).first()
 		robots = Robot.query.all()
 		robot.status="inactive"
 		db.session.commit()
 		for rob in robots:
 			print "%s:%s" %(robot.alias,robot.status)
+		return messagereturn(cuser,errorkey)
 
 def datasend(macid,alias,unick,commands,rfcset,uid):
 	# this is the command transport mechanism. A serial port is opened at the rfcset
@@ -326,7 +283,7 @@ def portsetup(commands):
 	robots = Robot.query.all()
 	for rob in robots:
 		print "%s:%s" %(robot.alias,robot.status)
-		if (rob.status!="inactive"):
+		if (rob.status != "inactive") and (robot.alias != rob.alias):
 			# Wait for 5 seconds and check again if a host-client bluetooth connection is up
 			# If elapsed_time is greater than 10 seconds then timeout the process and prompt
 			# for database check for any errors found
@@ -342,6 +299,14 @@ def portsetup(commands):
 			if (elapsed_time > 5) and not Qout:
 				print 'Port setup timeout'
 				Tout = True
+		elif (robot.alias == rob.alias):
+			Qout=True
+			print 'Robot key-value pair found in error state'
+			print 'Cleaning robot status key-value'
+			robot.status="inactive"
+			db.session.commit()
+			for rob in robots:
+				print "%s:%s" %(robot.alias,robot.status)
 		else:
 			Qout=True
 
@@ -353,7 +318,7 @@ def portsetup(commands):
 		rfcset=rfcommset(robots)
 		robot.status=rfcset
 		db.session.commit()
-		rfcommbind(str(rfcset),str(robot.macid),str(robot.alias),str(user.nickname),str(commands),str(user.id))
+		return rfcommbind(str(rfcset),str(robot.macid),str(robot.alias),str(user.nickname),str(commands),str(user.id))
 	# sdpbrowse(robot.macid) # HC06 and HC05 bluetooth modules don't advertise an SDP interface. Uncomment if
 	# using a module that does. Bug number will be attached to this issue.
 
@@ -362,7 +327,7 @@ def parseblocks(code):
 	# saved in memory for transimission.
 	response = json.dumps(code)
 	t = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-	savedir = os.path.join(sdir, g.user.nickname)
+	savedir = os.path.join(sdir, g.user.nickname, 'sketches')
 	if not os.path.exists(savedir):
 		os.mkdir(savedir)
 	filename = os.path.join(savedir, t+'.py')
@@ -372,18 +337,10 @@ def parseblocks(code):
 	target.close()
 	execfile(filename,globals(),locals())
 	# panya.commands.append("COUNT="+str(locals()['count']+1))
-	portsetup(panya.commands)
-	panya.commands = []
-	return response
+	sessionresponse = portsetup(panya.commands)
 
-# Uncomment the following lines to enable BLE search
-# def bleinquire():
-# 	global resp
-# 	global i
-# 	service = DiscoveryService()
-# 	devices = service.discover(2)
-# 	for addr, name in devices.items():
-# 		resp.append({'mac*':str(addr),'name*':str(name)})
+	panya.commands = []
+	return sessionresponse
 
 if __name__ == '__main__':
 	# print "OS: %s" % (str(_platform))
