@@ -364,14 +364,11 @@ function linuxhciprimer {
 				error+=(0)
 			fi
 		done
-	elif [ "$tl" -eq 0 ]; then
-		# no HCI interface are up. Check if any are available in next conditional
+	elif [ "$tl" -eq 0 ] && [ "$cn" -eq 0 ]; then
+		# no HCI interface are up and no HCI interface are available. Force exit
 		error+=(23)
-		if [ "$cn" -eq 0 ]; then
-			# no HCI interface are available. Force exit
-			error+=(24)
-			errorcatch
-		fi
+		error+=(24)
+		errorcatch
 	else
 		# pull down ALL available interfaces.
 		for (( h=0; h<"$tl"; h++ )); do
@@ -402,6 +399,9 @@ function linuxhciprimer {
 			error+=(0)
 		else
 			# HCI interface pull up failed
+			# This can occur if a bluetooth manager runnning on host
+			# has force set bluetooth off (You'll recieve a operation
+			# not permitted due to rfkill)
 			error+=(10)
 		fi
 	fi

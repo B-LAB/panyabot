@@ -4,6 +4,7 @@ from app import app, db, login_manager, bcrypt
 from .serialcon import leginquire, parseblocks, sketchupl
 from .forms import LoginForm, RegistrationForm
 from .models import User, Robot
+import os
 
 @app.before_request
 def before_request():
@@ -72,6 +73,15 @@ def login():
 				db.session.commit()
 				login_user(user, remember=form.remember_me.data)
 				flash('Welcome %s' % (g.user.nickname))
+				# create users data directory if it doesn't exist
+				datadir = app.config['DATA']
+				usersavedir = os.path.join(datadir,g.user.nickname)
+				print 'Verifying save directory'
+				if not os.path.exists(usersavedir):
+					print 'Creating '+str(g.user.nickname)+'\'s save directory'
+					os.mkdir(usersavedir)
+				else:
+					print str(g.user.nickname)+'\'s directory exists'
 				return redirect(request.args.get('next') or url_for('home'))
 			else:
 				flash('Invalid login. Please try again')	
