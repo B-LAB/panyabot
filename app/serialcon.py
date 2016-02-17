@@ -11,6 +11,7 @@ from app import app
 from flask import json, g
 from sys import platform as _platform
 import sys
+from collections import defaultdict
 
 if os.name == 'posix' and sys.version_info[0] < 3:
     import subprocess32 as subprocess
@@ -101,32 +102,56 @@ def sdpbrowse(macid=None):
 	    print("    service id:  %s "% svc["service-id"])
 	    print()
 
-def messagereturn(cuser,errorkey):
-	errorfile = os.path.join(sdir,g.user.nickname,'error.log')
-	json_data=[]
-	messresp = []
-	errordict = { 1 : 'HCI reset error', 2 : 'HCI reset error', 3 : 'No HCI available',
-					4 : 'HCI switch error', 5 : 'HCI switch error', 6 : 'HCI switch error',
-					7 : 'HCI switch error', 8 : 'No HCI available', 9 : 'HCI pull down error',
-					10 : 'HCI pull up error', 11 : 'Device release error', 12 : 'Device assignment error',
-					13 : 'No HCI available', 14 : 'Bluetooth unpair error', 15 : 'Device unpair error',
-					16 : 'Firmware upload error', 17 : 'Bluetooth pairing error', 18 : 'Device binding failed',
-					19 : 'Device binding error', 20 : 'Bluetooth pairing error', 21 : 'Device binding failed',
-					22 : 'Device not found', 23 : 'No HCI interfaces up', 24 : 'No HCI available', 25 : 'No HCI available',
-					26 : 'No HCI available', 27 : 'No USB devices found', 28 : 'No Arduinos found', 29: 'No HCI available'
-					}
-	# remember to include stacktrace error if error not within range
-	# print 'CRITICAL ERROR: UNEXPECTED ERROR OCCURRED!'
-	# print "STACKTRACE:"
-	if os.path.exists(errorfile):
-		with open(errorfile,'r') as json_target:
-			json_data = json.load(json_target)
-			for i, val in enumerate(json_data):
-				if (int(json_data[i]['key']) == int(errorkey)):
-					messresp=json.dumps(json_data[i])
-		return messresp
+def messagereturn(cuser,errorkey,stricterror=None):
+	messresp = defaultdict(list)
+	errordict = [{ "error":1, "info":"HCI reset error" },{ "error":2, "info":"HCI reset error"},{ "error":3, "info":"No HCI available"},
+					{ "error":4, "info":"HCI switch error"},{ "error":5, "info":"HCI switch error"},{ "error":6, "info":"HCI switch error"},
+					{ "error":7, "info":"HCI switch error"},{ "error":8, "info":"No HCI available"},{"error":9, "info":"HCI pull down error"},
+					{ "error":10, "info":"HCI pull up error"},{ "error":11, "info":"Device release error"},{ "error":12, "info":"Device assignment error"},
+					{ "error":13, "info":"No HCI available"},{ "error":14, "info":"Bluetooth unpair error"},{ "error":15, "info":"Device unpair error"},
+					{ "error":16, "info":"Firmware upload error"},{ "error":17, "info":"Bluetooth pairing error"},{ "error":18, "info":"Device binding failed"},
+					{ "error":19, "info":"Device binding error"},{"error":20, "info":"Bluetooth pairing error"},{ "error":21, "info":"Device binding failed"},
+					{ "error":22, "info":"Device not found"},{ "error":23, "info":"No HCI interfaces up"},{ "error":24, "info":"No HCI available"},{ "error":25, "info": "No HCI available"},
+					{ "error":26, "info":"No HCI available"},{ "error":27, "info":"No USB devices found"},{ "error":28, "info":"No Arduinos found"},{ "error":29, "info":"No HCI available"},
+					{ "error":30, "info":"Firmware does not exist"}, { "error":31, "info":"Unexpected error"},{ "error":32, "info":"Fatal error"}]
+	if (stricterror==None):
+		errorfile = os.path.join(sdir,g.user.nickname,'error.log')
+		json_data=[]
+		# remember to include stacktrace error if error not within range
+		# print 'CRITICAL ERROR: UNEXPECTED ERROR OCCURRED!'
+		# print "STACKTRACE:"
+		if os.path.exists(errorfile):
+			with open(errorfile,'r') as json_target:
+				json_data = json.load(json_target)
+				for error in json_data:
+					if (int(error["key"]) == int(errorkey)):
+						print 'copying error instance: '+str(error)
+						for code in error["code"]:
+							if (int(code)>0) and (int(code)<33):
+								for refcode in errordict:
+									if (int(code)==int(refcode["error"])):
+										messresp["info"].append(refcode["info"])
+							else:
+								for err in errordict:
+									if (err["error"]==32):
+										print 'error '+str(err["error"])+":"+str(err["info"])
+										messresp["info"].append(err["info"])
+										return json.dumps(messresp)
+			return json.dumps(messresp)
+		else:
+			return json.dumps(messresp)
 	else:
-		return json.dumps(messresp)
+		for err in errordict:
+			if (int(stricterror)==int(err["error"])):
+				print 'error '+str(err["error"])+":"+str(err["info"])
+				messresp["info"].append(err["info"])
+				return json.dumps(messresp)
+			else:
+				for err in errordict:
+					if (err["error"]==31):
+						print 'error '+str(err["error"])+":"+str(err["info"])
+						messresp["info"].append(err["info"])
+						return json.dumps(messresp)
 
 def sketchupl(sketchpath):
 	if os.path.exists(sketchpath):
@@ -150,7 +175,8 @@ def sketchupl(sketchpath):
 			print 'ERROR 4: Subprocess call complete with '+str(output)+' errors'
 			return messagereturn(cuser,errorkey)
 	else:
-		print "Firmware specified does not exist"
+		# Firmware specified does not exist, explicitly handled through messagereturn
+		return messagereturn(None,None,30)
 
 def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=None):
 	# this function takes the supplied macid passing it to the bash/shell script to
@@ -287,26 +313,27 @@ def portsetup(commands):
 			# Wait for 5 seconds and check again if a host-client bluetooth connection is up
 			# If elapsed_time is greater than 10 seconds then timeout the process and prompt
 			# for database check for any errors found
-			print "Queuing bluetooth upload"
-			Qflag = True
-			queue_start = time.time()
-			elapsed_time = 0
-			while (elapsed_time < 5) and not (Qout):
-				if (rob.status == "inactive"):
-					print 'Slot in queue found'
-					Qout = True
-				elapsed_time = time.time() - queue_start
-			if (elapsed_time > 5) and not Qout:
-				print 'Port setup timeout'
-				Tout = True
-		elif (robot.alias == rob.alias):
-			Qout=True
-			print 'Robot key-value pair found in error state'
-			print 'Cleaning robot status key-value'
-			robot.status="inactive"
-			db.session.commit()
-			for rob in robots:
-				print "%s:%s" %(robot.alias,robot.status)
+			if (robot.alias == rob.alias):
+				Qout=True
+				print 'Robot key-value pair found in error state'
+				print 'Cleaning robot status key-value'
+				robot.status="inactive"
+				db.session.commit()
+				for rob in robots:
+					print "%s:%s" %(robot.alias,robot.status)
+			else:
+				print "Queuing bluetooth upload"
+				Qflag = True
+				queue_start = time.time()
+				elapsed_time = 0
+				while (elapsed_time < 5) and not (Qout):
+					if (rob.status == "inactive"):
+						print 'Slot in queue found'
+						Qout = True
+					elapsed_time = time.time() - queue_start
+				if (elapsed_time > 5) and not Qout:
+					print 'Port setup timeout'
+					Tout = True
 		else:
 			Qout=True
 

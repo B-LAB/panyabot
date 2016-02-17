@@ -400,9 +400,10 @@ function linuxhciprimer {
 		else
 			# HCI interface pull up failed
 			# This can occur if a bluetooth manager runnning on host
-			# has force set bluetooth off (You'll recieve a operation
-			# not permitted due to rfkill)
+			# has force set bluetooth off (Eg. operation
+			# not permitted due to rfkill). Force exit
 			error+=(10)
+			errorcatch
 		fi
 	fi
 }

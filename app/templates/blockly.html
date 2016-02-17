@@ -112,15 +112,15 @@
           if (datareturned === true){
             alert("Done!")
           } else {
-            $.each(passdata.code, function(index, element) {
+            $.each(passdata.info, function(index, element) {
               var err = element;
-              error_list = error_list.concat(err);
+              error_list = error_list.concat("\n"+err);
             });
-            alert("The following errors codes occured: "+error_list);
+            alert("ERROR:"+error_list);
           }
         },
         error: function(){
-          alert("Webserver Error");
+          alert("Fatal Error");
         }
       });
     }

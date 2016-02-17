@@ -33,15 +33,11 @@ def bluetooth():
 		'devices': leginquire()
 		})
 
-@app.route('/reset')
+@app.route('/reinstall')
 def reset():
-	user = g.user
-	robot = Robot.query.filter_by(user_id=user.id).first()
-	if sketchupl('../data/sketches/Blink/'):
-		flash(str(robot.alias)+' has been reset!')
-	else:
-		flash(str(robot.alias)+' reset failed!')
-	return render_template('home.html', title='Home', user=user, robot=robot)
+	if request.method == 'GET':
+		response=sketchupl('../data/sketches/Blink/')
+		return jsonify({'status': response})
 
 @app.route('/register', methods=['GET','POST'])
 def register():
