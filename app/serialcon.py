@@ -4,10 +4,9 @@ import time
 import serial
 import panya
 import re
-from app import db
+from app import db, app
 from app.models import User, Robot
 from datetime import datetime
-from app import app
 from flask import json, g
 from sys import platform as _platform
 import sys
@@ -53,28 +52,98 @@ else:
 # 	for addr, name in devices.items():
 # 		resp.append({'mac*':str(addr),'name*':str(name)})
 
+def messagereturn(cuser,errorkey,stricterror=None):
+	messresp = defaultdict(list)
+	errordict = [{ "error":1, "info":"HCI reset error" },{ "error":2, "info":"HCI reset error"},{ "error":3, "info":"No HCI available"},
+					{ "error":4, "info":"HCI switch error"},{ "error":5, "info":"HCI switch error"},{ "error":6, "info":"HCI switch error"},
+					{ "error":7, "info":"HCI switch error"},{ "error":8, "info":"No HCI available"},{"error":9, "info":"HCI pull down error"},
+					{ "error":10, "info":"HCI pull up error"},{ "error":11, "info":"Device release error"},{ "error":12, "info":"Device assignment error"},
+					{ "error":13, "info":"No HCI available"},{ "error":14, "info":"Bluetooth unpair error"},{ "error":15, "info":"Device unpair error"},
+					{ "error":16, "info":"Firmware upload error"},{ "error":17, "info":"Bluetooth pairing error"},{ "error":18, "info":"Device binding failed"},
+					{ "error":19, "info":"Device binding error"},{"error":20, "info":"Bluetooth pairing error"},{ "error":21, "info":"Device binding failed"},
+					{ "error":22, "info":"Device not found"},{ "error":23, "info":"No HCI interfaces up"},{ "error":24, "info":"No HCI available"},{ "error":25, "info": "No HCI available"},
+					{ "error":26, "info":"No HCI available"},{ "error":27, "info":"No USB devices found"},{ "error":28, "info":"No Arduinos found"},{ "error":29, "info":"No HCI available"},
+					{ "error":30, "info":"Firmware does not exist"}, { "error":31, "info":"Unexpected error"},{ "error":32, "info":"Fatal error"},{ "error":33, "info":"No HCI available"}
+					]
+	if (stricterror==None):
+		errorfile = os.path.join(sdir,g.user.nickname,'error.log')
+		json_data=[]
+		# remember to include stacktrace error if error not within range
+		# print 'CRITICAL ERROR: UNEXPECTED ERROR OCCURRED!'
+		# print "STACKTRACE:"
+		if os.path.exists(errorfile):
+			with open(errorfile,'r') as json_target:
+				json_data = json.load(json_target)
+				for error in json_data:
+					if (int(error["key"]) == int(errorkey)):
+						print 'copying error instance: '+str(error)
+						for code in error["code"]:
+							if (int(code)>0) and (int(code)<=29):
+								for refcode in errordict:
+									if (int(code)==int(refcode["error"])):
+										messresp["info"].append(refcode["info"])
+							else:
+								for err in errordict:
+									if (err["error"]==32):
+										print 'error '+str(err["error"])+":"+str(err["info"])
+										messresp["info"].append(err["info"])
+										return json.dumps(messresp)
+			return json.dumps(messresp)
+		else:
+			return json.dumps(messresp)
+	else:
+		errfound=False
+		for err in errordict:
+			if (stricterror==err["error"]):
+				print 'error '+str(err["error"])+":"+str(err["info"])
+				messresp["info"].append(err["info"])
+				errfound=True
+				return json.dumps(messresp)
+		if not errfound:
+			for err in errordict:
+				if (err["error"]==31):
+					print 'error '+str(err["error"])+":"+str(err["info"])
+					messresp["info"].append(err["info"])
+					return json.dumps(messresp)
+
 def leginquire():
 	# bluetooth legacy discovery api endpoint. This endpoint is used by the
 	# registration page when searching for nearby bluetooth devices.
 	global resp
 	global i
 	resp = []
-	nearby_devices = bluetooth.discover_devices(duration=8, lookup_names=True, flush_cache=True)
-	for addr, name in nearby_devices:
-		try:
-			resp.append({'mac':str(addr),'name':str(name)})
-		except UnicodeEncodeError:
-			resp.append({'mac':str(addr),'name':str(name.encode('utf-8', 'replace'))})
-	
-	# ble discovery endpoint. This trigger is a work in progress due to limitations
-	# with the pybluez library.
-	# if ((resp == []) & (blescan)):
-		# bleinquire()
+	if (host=="win"):
+		output=subprocess.call([rfpath,'-h',host,'-P'], shell=True)
+		print '********************************************************************'
+		print output
+		print '********************************************************************'
+	else:
+		output=subprocess.call(['%s -h %s -P' %(rfpath,host)], shell=True)
+		print '********************************************************************'
+		print output
+		print '********************************************************************'
+	if (output==0):
+		print 'Subprocess call complete with '+str(output)+' errors'
+		nearby_devices = bluetooth.discover_devices(duration=8, lookup_names=True, flush_cache=True)
+		for addr, name in nearby_devices:
+			try:
+				resp.append({'mac':str(addr),'name':str(name)})
+			except UnicodeEncodeError:
+				resp.append({'mac':str(addr),'name':str(name.encode('utf-8', 'replace'))})
+		
+		# ble discovery endpoint. This trigger is a work in progress due to limitations
+		# with the pybluez library.
+		# if ((resp == []) & (blescan)):
+			# bleinquire()
 
-	# jsonify the bluetooth search results to be consumed by the 
-	# registration page ajax pull request.
-	response = json.dumps(resp)
-	return response
+		# jsonify the bluetooth search results to be consumed by the 
+		# registration page ajax pull request.
+		response = json.dumps(resp)
+		return response
+	else:
+		print "Error performing bluetooth search"
+		print 'ERROR 5: Subprocess call complete with '+str(output)+' errors'
+		return messagereturn(None,None,33)
 
 def sdpbrowse(macid=None):
 	# this function determines the available service profiles at the specified bluetooth macid.
@@ -101,57 +170,6 @@ def sdpbrowse(macid=None):
 	    print("    profiles:    %s "% svc["profiles"])
 	    print("    service id:  %s "% svc["service-id"])
 	    print()
-
-def messagereturn(cuser,errorkey,stricterror=None):
-	messresp = defaultdict(list)
-	errordict = [{ "error":1, "info":"HCI reset error" },{ "error":2, "info":"HCI reset error"},{ "error":3, "info":"No HCI available"},
-					{ "error":4, "info":"HCI switch error"},{ "error":5, "info":"HCI switch error"},{ "error":6, "info":"HCI switch error"},
-					{ "error":7, "info":"HCI switch error"},{ "error":8, "info":"No HCI available"},{"error":9, "info":"HCI pull down error"},
-					{ "error":10, "info":"HCI pull up error"},{ "error":11, "info":"Device release error"},{ "error":12, "info":"Device assignment error"},
-					{ "error":13, "info":"No HCI available"},{ "error":14, "info":"Bluetooth unpair error"},{ "error":15, "info":"Device unpair error"},
-					{ "error":16, "info":"Firmware upload error"},{ "error":17, "info":"Bluetooth pairing error"},{ "error":18, "info":"Device binding failed"},
-					{ "error":19, "info":"Device binding error"},{"error":20, "info":"Bluetooth pairing error"},{ "error":21, "info":"Device binding failed"},
-					{ "error":22, "info":"Device not found"},{ "error":23, "info":"No HCI interfaces up"},{ "error":24, "info":"No HCI available"},{ "error":25, "info": "No HCI available"},
-					{ "error":26, "info":"No HCI available"},{ "error":27, "info":"No USB devices found"},{ "error":28, "info":"No Arduinos found"},{ "error":29, "info":"No HCI available"},
-					{ "error":30, "info":"Firmware does not exist"}, { "error":31, "info":"Unexpected error"},{ "error":32, "info":"Fatal error"}]
-	if (stricterror==None):
-		errorfile = os.path.join(sdir,g.user.nickname,'error.log')
-		json_data=[]
-		# remember to include stacktrace error if error not within range
-		# print 'CRITICAL ERROR: UNEXPECTED ERROR OCCURRED!'
-		# print "STACKTRACE:"
-		if os.path.exists(errorfile):
-			with open(errorfile,'r') as json_target:
-				json_data = json.load(json_target)
-				for error in json_data:
-					if (int(error["key"]) == int(errorkey)):
-						print 'copying error instance: '+str(error)
-						for code in error["code"]:
-							if (int(code)>0) and (int(code)<33):
-								for refcode in errordict:
-									if (int(code)==int(refcode["error"])):
-										messresp["info"].append(refcode["info"])
-							else:
-								for err in errordict:
-									if (err["error"]==32):
-										print 'error '+str(err["error"])+":"+str(err["info"])
-										messresp["info"].append(err["info"])
-										return json.dumps(messresp)
-			return json.dumps(messresp)
-		else:
-			return json.dumps(messresp)
-	else:
-		for err in errordict:
-			if (int(stricterror)==int(err["error"])):
-				print 'error '+str(err["error"])+":"+str(err["info"])
-				messresp["info"].append(err["info"])
-				return json.dumps(messresp)
-			else:
-				for err in errordict:
-					if (err["error"]==31):
-						print 'error '+str(err["error"])+":"+str(err["info"])
-						messresp["info"].append(err["info"])
-						return json.dumps(messresp)
 
 def sketchupl(sketchpath):
 	if os.path.exists(sketchpath):
@@ -200,7 +218,7 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 			print 'Starting command upload procedure'
 			datasend(macid,alias,unick,commands,rfcset,uid)
 		else:
-			print "Error Binding RFCOMM Device"
+			print "Error Binding and pairing bluetooth Device"
 			print 'ERROR 1: Subprocess call complete with '+str(output)+' errors'
 			print 'Cleaning robot status key-value'
 			robot = Robot.query.filter_by(user_id=uid).first()
@@ -211,32 +229,45 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 				print "%s:%s" %(robot.alias,robot.status)
 			return messagereturn(cuser,errorkey)
 	else:
-		# removed the automatic client flush to improve the web client speed.
-		# try:
-		# 	if (host=="win"):
-		# 		output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-f','-h',host,'-e',errorkey,'-c',cuser], shell=True)
-		# 	else:
-		# 		output=subprocess.call(['%s -u %s -d %s -f -h %s -e %s -c %s' %(rfpath,macid,rfcset,host,errorkey,cuser)], shell=True)
-		# 	print '********************************************************************'
-		# 	print output
-		# 	print '********************************************************************'
-		# 	print "Skipping unpairing and release process"
-		# except Exception,e:
-		# 	if an error occurs while trying to flush and no ORM-related error is provided
-		# 	a error state with the subprocess call can be assumed.
-		# 	print "Error Releasing RFCOMM device!"
-		# 	print "STACKTRACE:"
-		# 	print str(e)
+		if (host=="win"):
+			output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-h',host, '-f','-e',errorkey,'-c',cuser], shell=True)
+		else:
+			output=subprocess.call(['%s -u %s -d %s -h %s -f -e %s -c %s' %(rfpath,macid,rfcset,host,errorkey,cuser)], shell=True)
+		print '********************************************************************'
+		print output
+		print '********************************************************************'
+		if (output==0):
+			print 'Subprocess call complete with '+str(output)+' errors'
+			print 'Cleaning robot status key-value'
+			robot = Robot.query.filter_by(user_id=uid).first()
+			robots = Robot.query.all()
+			robot.status="inactive"
+			db.session.commit()
+			for rob in robots:
+				print "%s:%s" %(robot.alias,robot.status)
+			return messagereturn(cuser,errorkey)
+		else:
+			print "Error releasing and unpairing bluetooth Device"
+			print 'ERROR 6: Subprocess call complete with '+str(output)+' errors'
+			print 'Cleaning robot status key-value'
+			robot = Robot.query.filter_by(user_id=uid).first()
+			robots = Robot.query.all()
+			robot.status="inactive"
+			db.session.commit()
+			for rob in robots:
+				print "%s:%s" %(robot.alias,robot.status)
+			return messagereturn(cuser,errorkey)
+		# print 'Skipping unpair and unbind process'
 		# ensure that robot status is always set back to inactive to ensure subsequent client
 		# connections
-		print 'Cleaning robot status key-value'
-		robot = Robot.query.filter_by(user_id=uid).first()
-		robots = Robot.query.all()
-		robot.status="inactive"
-		db.session.commit()
-		for rob in robots:
-			print "%s:%s" %(robot.alias,robot.status)
-		return messagereturn(cuser,errorkey)
+		# print 'Cleaning robot status key-value'
+		# robot = Robot.query.filter_by(user_id=uid).first()
+		# robots = Robot.query.all()
+		# robot.status="inactive"
+		# db.session.commit()
+		# for rob in robots:
+		# 	print "%s:%s" %(robot.alias,robot.status)
+		# return messagereturn(cuser,errorkey)
 
 def datasend(macid,alias,unick,commands,rfcset,uid):
 	# this is the command transport mechanism. A serial port is opened at the rfcset
@@ -271,28 +302,32 @@ def rfcommset(robots):
 	# this function manages the allocation of rfcomm port numbers to each incoming request.
 	# prstlist stores the previously allocated dev numbers that haven't been declared inactive.
 	# prstflag indicates that the function must iterate to the lowest unused port number.
-	prstlist={}
-	prstflag=False
-
+	prstlist = {}
+	prstflag = False
+	user = User.query.filter_by(nickname=g.user.nickname).first()
+	robot = Robot.query.filter_by(user_id=user.id).first()
+	robots = Robot.query.all()
 	for robot in robots:
 		if (robot.status!="inactive"):
 			prstcomm=re.search("rfcomm.",robot.status)
 			print 'Found %s registered to %s' %(prstcomm.group(),robot.alias)
 			devno=prstcomm.group().strip("rfcomm")
 			prstlist['robot.alias']=devno
-			prstflag=True
+			prstflag = True
 
 	if prstflag:
 		# this conditional and nested loop interate over the values stored
 		# in the prstlist to determine what port value to assign for the current
 		# request.
-		setval=0
+		print 'Iterating to lowest available rfcomm index'
+		setval = 0
 		for key, value in prstlist.iteritems():
-			if (setval<value):
-				setval=value+1
+			if (setval<int(value)):
+				setval=int(value)+1
 	else:
 		# if prstflag is not true, default to assign at port 0 (i.e. /dev/rfcomm0)
-		setval=0
+		print 'No devices found to be in active use. Setting setcomm to rfcomm'
+		setval = 0
 
 	setcomm="rfcomm"+str(setval)
 	return setcomm
@@ -313,7 +348,19 @@ def portsetup(commands):
 			# Wait for 5 seconds and check again if a host-client bluetooth connection is up
 			# If elapsed_time is greater than 10 seconds then timeout the process and prompt
 			# for database check for any errors found
-			if (robot.alias == rob.alias):
+			print "Queuing bluetooth upload"
+			Qflag = True
+			queue_start = time.time()
+			elapsed_time = 0
+			while (elapsed_time < 5) and not (Qout):
+				if (rob.status == "inactive"):
+					print 'Slot in queue found'
+					Qout = True
+				elapsed_time = time.time() - queue_start
+			if (elapsed_time > 5) and not Qout:
+				print 'Port setup timeout'
+				Tout = True
+		elif (rob.status != "inactive") and (robot.alias == rob.alias):
 				Qout=True
 				print 'Robot key-value pair found in error state'
 				print 'Cleaning robot status key-value'
@@ -321,21 +368,8 @@ def portsetup(commands):
 				db.session.commit()
 				for rob in robots:
 					print "%s:%s" %(robot.alias,robot.status)
-			else:
-				print "Queuing bluetooth upload"
-				Qflag = True
-				queue_start = time.time()
-				elapsed_time = 0
-				while (elapsed_time < 5) and not (Qout):
-					if (rob.status == "inactive"):
-						print 'Slot in queue found'
-						Qout = True
-					elapsed_time = time.time() - queue_start
-				if (elapsed_time > 5) and not Qout:
-					print 'Port setup timeout'
-					Tout = True
 		else:
-			Qout=True
+			Qout = True
 
 		if Qout and not Tout:
 			Qflag = False

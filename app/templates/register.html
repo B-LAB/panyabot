@@ -108,6 +108,7 @@
   </script>
   <script>
   function bluesearch() {
+    var error_list = [];
     var option_list = [["","---Select One---"]];
     $("#search").hide();
     $("#loading").show();
@@ -119,22 +120,48 @@
         $("#search").show();
         $("#loading").hide();
         var passdata = JSON.parse(data.devices);
-        $.each(passdata, function(i, item) {
-          var dev_item=[[item.mac,item.name]];
-          option_list = option_list.concat(dev_item);
-          dev_item=[];
-        });
-        option_list = option_list.concat([["00","---Manual Entry---"]]);
-        $("#robotsel").empty();
-        alert(option_list.length-2+" devices found")
-        for (var i = 0; i < option_list.length; i++) {
-          $("#robotsel").append(
-            $("<option></option>").attr(
-              "value", option_list[i][0]).text(option_list[i][1])
-            );
-          $("#robotmac").hide();
-          $('#dvsel').show();
-          $('#robotsel').selectpicker('refresh');
+        console.log(passdata)
+        datareturned=jQuery.isEmptyObject(passdata);
+        errreturned=jQuery.isEmptyObject(passdata.info);
+        if (datareturned === false && errreturned === true){
+          $.each(passdata, function(i, item) {
+            var dev_item=[[item.mac,item.name]];
+            option_list = option_list.concat(dev_item);
+            dev_item=[];
+          });
+          option_list = option_list.concat([["00","---Manual Entry---"]]);
+          $("#robotsel").empty();
+          alert(option_list.length-2+" device(s) found")
+          for (var i = 0; i < option_list.length; i++) {
+            $("#robotsel").append(
+              $("<option></option>").attr(
+                "value", option_list[i][0]).text(option_list[i][1])
+              );
+            $("#robotmac").hide();
+            $('#dvsel').show();
+            $('#robotsel').selectpicker('refresh');
+          }
+        }
+        else if (datareturned === true){
+          option_list = option_list.concat([["00","---Manual Entry---"]]);
+          $("#robotsel").empty();
+          alert("0 devices found")
+          for (var i = 0; i < option_list.length; i++) {
+            $("#robotsel").append(
+              $("<option></option>").attr(
+                "value", option_list[i][0]).text(option_list[i][1])
+              );
+            $("#robotmac").hide();
+            $('#dvsel').show();
+            $('#robotsel').selectpicker('refresh');
+          }
+        }
+        else if (errreturned ===false){
+          $.each(passdata.info, function(index, element) {
+            var err = element;
+            error_list = error_list.concat("\n"+err);
+          });
+          alert("ERROR:"+error_list);
         }
       },
       error: function(){
