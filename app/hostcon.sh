@@ -684,49 +684,40 @@ function errorcatch {
 		done
 		homedir=$(dirname $(pwd))
 		if [ "$errorcount" -gt 0 ]; then
+			retcode="$errorcount"
 			echo "$errorcount errors occured"
-			if [ ! -f $homedir/data/$cuser/error.log ]; then
+			if [ ! -f $homedir/data/$cuser/error.log ] && [ "$flush" = "" ]; then
+				echo "starting non-flush error logging cycle"
 				touch $homedir/data/$cuser/error.log
-			else
-				rm $homedir/data/$cuser/error.log
-				touch $homedir/data/$cuser/error.log
-			fi
-			if [ "$flush" = "" ]; then
 				echo -e "[{\"key\":\""$errorkey"\", \"code\": [" >> $homedir/data/$cuser/error.log
-				if [ "$errorcount" -gt 1 ]; then
-					eind=$(($errorcount-1))
-					while [ "$eind" -ge 1 ]; do
-						err="${error["$eind"]}"
-						echo -e "\""$err"\"," >> $homedir/data/$cuser/error.log
-						eind=$(($eind-1))
-						if [ "$eind" -eq 0 ]; then
-							err="${error[0]}"
-							echo -e "\""$err"\"]}]" >> $homedir/data/$cuser/error.log
-						fi
-					done
-				else
-					echo -e "\""${error[0]}"\"]}]" >> $homedir/data/$cuser/error.log
-				fi
-				exit $errorcount
-			else
-				if [ -f $homedir/data/$cuser/error.log ]; then
-					echo -e "[{\"key\":\""$errorkey"\", \"code\": [" >> $homedir/data/$cuser/error.log
-					if [ "$errorcount" -gt 1 ]; then
-						eind=$(($errorcount-1))
-						while [ "$eind" -ge 1 ]; do
-							err="${error["$eind"]}"
-							echo -e "\""$err"\"," >> $homedir/data/$cuser/error.log
-							eind=$(($eind-1))
-							if [ "$eind" -eq 0 ]; then
-								err="${error[0]}"
-								echo -e "\""$err"\"]}]" >> $homedir/data/$cuser/error.log
-							fi
-						done
+				while [ "$errorcount" -ge 1 ]; do
+					errorcount=$(($errorcount-1))
+					if [ "$errorcount" -eq 0 ]; then
+						err="${error[$errorcount]}"
+						echo -e "\""$err"\"]}]" >> $homedir/data/$cuser/error.log
 					else
-						echo -e "\""${error[0]}"\"]}]" >> $homedir/data/$cuser/error.log
+						err="${error[$errorcount]}"
+						echo -e "\""$err"\"," >> $homedir/data/$cuser/error.log
 					fi
-					exit $errorcount
+				done
+				exit $retcode
+			elif [ -f $homedir/data/$cuser/error.log ] && [ "$flush" != "" ]; then
+				echo "starting flush error logging cycle"
+				if [ "$errorcount" -ge 1 ]; then
+					# http://www.theunixschool.com/2014/08/sed-examples-remove-delete-chars-from-line-file.html
+					sed 's/]}]$/,/g' $homedir/data/$cuser/error.log
+					while [ "$errorcount" -ge 1 ]; do
+					errorcount=$(($errorcount-1))
+					if [ "$errorcount" -eq 0 ]; then
+						err="${error[$errorcount]}"
+						echo -e "\""$err"\"]}]" >> $homedir/data/$cuser/error.log
+					else
+						err="${error[$errorcount]}"
+						echo -e "\""$err"\"," >> $homedir/data/$cuser/error.log
+					fi
+				done
 				fi
+				exit $retcode
 			fi
 		else
 			echo "no errors occured"

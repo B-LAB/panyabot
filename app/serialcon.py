@@ -52,7 +52,7 @@ else:
 # 	for addr, name in devices.items():
 # 		resp.append({'mac*':str(addr),'name*':str(name)})
 
-def messagereturn(cuser,errorkey,stricterror=None):
+def messagereturn(cuser,errorkey,stricterror=None,fullcycle=None):
 	messresp = defaultdict(list)
 	errordict = [{ "error":1, "info":"HCI reset error" },{ "error":2, "info":"HCI reset error"},{ "error":3, "info":"No HCI available"},
 					{ "error":4, "info":"HCI switch error"},{ "error":5, "info":"HCI switch error"},{ "error":6, "info":"HCI switch error"},
@@ -65,7 +65,8 @@ def messagereturn(cuser,errorkey,stricterror=None):
 					{ "error":26, "info":"No HCI available"},{ "error":27, "info":"No USB devices found"},{ "error":28, "info":"No Arduinos found"},{ "error":29, "info":"No HCI available"},
 					{ "error":30, "info":"Firmware does not exist"}, { "error":31, "info":"Unexpected error"},{ "error":32, "info":"Fatal error"},{ "error":33, "info":"No HCI available"}
 					]
-	if (stricterror==None):
+	if (stricterror==None) and (fullcycle==None):
+		print 'starting halfcycle error logging'
 		errorfile = os.path.join(sdir,g.user.nickname,'error.log')
 		json_data=[]
 		# remember to include stacktrace error if error not within range
@@ -91,7 +92,44 @@ def messagereturn(cuser,errorkey,stricterror=None):
 			return json.dumps(messresp)
 		else:
 			return json.dumps(messresp)
-	else:
+	elif (stricterror==None) and (fullcycle!=None):
+		print 'starting fullcycle error logging'
+		errorfile = os.path.join(sdir,g.user.nickname,'error.log')
+		json_data=[]
+		# remember to include stacktrace error if error not within range
+		# print 'CRITICAL ERROR: UNEXPECTED ERROR OCCURRED!'
+		# print "STACKTRACE:"
+		if os.path.exists(errorfile):
+			with open(errorfile,'r') as json_target:
+				json_data = json.load(json_target)
+				for error in json_data:
+					if (int(error["key"]) == int(errorkey)):
+						print 'copying error instance: '+str(error)
+						for code in error["code"]:
+							if (int(code)>0) and (int(code)<=29):
+								for refcode in errordict:
+									if (int(code)==int(refcode["error"])):
+										messresp["info"].append(refcode["info"])
+							else:
+								for err in errordict:
+									if (err["error"]==32):
+										print 'error '+str(err["error"])+":"+str(err["info"])
+										messresp["info"].append(err["info"])
+										print 'deleting error log file'
+										if os.path.exists(errorfile):
+											os.remove(errorfile)
+										return json.dumps(messresp)
+			print 'deleting error log file'
+			if os.path.exists(errorfile):
+				os.remove(errorfile)
+			return json.dumps(messresp)
+		else:
+			print 'deleting error log file'
+			if os.path.exists(errorfile):
+				os.remove(errorfile)
+			return json.dumps(messresp)
+	elif (stricterror!=None) and (fullcycle==None):
+		print 'starting strict/escalated error logging'
 		errfound=False
 		for err in errordict:
 			if (stricterror==err["error"]):
@@ -143,7 +181,7 @@ def leginquire():
 	else:
 		print "Error performing bluetooth search"
 		print 'ERROR 5: Subprocess call complete with '+str(output)+' errors'
-		return messagereturn(None,None,33)
+		return messagereturn(None,None,33,None)
 
 def sdpbrowse(macid=None):
 	# this function determines the available service profiles at the specified bluetooth macid.
@@ -187,14 +225,14 @@ def sketchupl(sketchpath):
 			print '********************************************************************'
 		if (output==0):
 			print 'Subprocess call complete with '+str(output)+' errors'
-			return messagereturn(cuser,errorkey)
+			return messagereturn(cuser,errorkey,None,"fullcycle")
 		else:
 			print "Error uploading firmware to devices"
 			print 'ERROR 4: Subprocess call complete with '+str(output)+' errors'
-			return messagereturn(cuser,errorkey)
+			return messagereturn(cuser,errorkey,None,"fullcycle")
 	else:
 		# Firmware specified does not exist, explicitly handled through messagereturn
-		return messagereturn(None,None,30)
+		return messagereturn(None,None,30,None)
 
 def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=None):
 	# this function takes the supplied macid passing it to the bash/shell script to
@@ -227,7 +265,7 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 			db.session.commit()
 			for rob in robots:
 				print "%s:%s" %(robot.alias,robot.status)
-			return messagereturn(cuser,errorkey)
+			return messagereturn(cuser,errorkey,None,"fullcycle")
 	else:
 		if (host=="win"):
 			output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-h',host, '-f','-e',errorkey,'-c',cuser], shell=True)
@@ -245,7 +283,7 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 			db.session.commit()
 			for rob in robots:
 				print "%s:%s" %(robot.alias,robot.status)
-			return messagereturn(cuser,errorkey)
+			return messagereturn(cuser,errorkey,None,"fullcycle")
 		else:
 			print "Error releasing and unpairing bluetooth Device"
 			print 'ERROR 6: Subprocess call complete with '+str(output)+' errors'
@@ -256,7 +294,7 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 			db.session.commit()
 			for rob in robots:
 				print "%s:%s" %(robot.alias,robot.status)
-			return messagereturn(cuser,errorkey)
+			return messagereturn(cuser,errorkey,None,None,"fullcycle")
 		# print 'Skipping unpair and unbind process'
 		# ensure that robot status is always set back to inactive to ensure subsequent client
 		# connections
@@ -267,7 +305,7 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 		# db.session.commit()
 		# for rob in robots:
 		# 	print "%s:%s" %(robot.alias,robot.status)
-		# return messagereturn(cuser,errorkey)
+		# return messagereturn(cuser,errorkey,None,None)
 
 def datasend(macid,alias,unick,commands,rfcset,uid):
 	# this is the command transport mechanism. A serial port is opened at the rfcset
