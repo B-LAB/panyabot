@@ -365,10 +365,9 @@ function linuxhciprimer {
 			fi
 		done
 	elif [ "$tl" -eq 0 ] && [ "$cn" -eq 0 ]; then
-		# no HCI interface are up and no HCI interface are available. Force exit
+		# no HCI interface are up and no HCI interface are available.
 		error+=(23)
 		error+=(24)
-		errorcatch
 	else
 		# pull down ALL available interfaces.
 		for (( h=0; h<"$tl"; h++ )); do
@@ -402,9 +401,8 @@ function linuxhciprimer {
 			# HCI interface pull up failed
 			# This can occur if a bluetooth manager runnning on host
 			# has force set bluetooth off (Eg. operation
-			# not permitted due to rfkill). Force exit
+			# not permitted due to rfkill).
 			error+=(10)
-			errorcatch
 		fi
 	fi
 }
@@ -430,64 +428,74 @@ function linuxhcicheck {
 
 function linuxflush {
 	linuxhcicheck
-	# begin flushing process
-	echo "Starting flush on linux host"
-	echo "Starting release process:"
-	# We first determine if the passed device dev assignment
-	# exists in the rfcomm table.
-	devfind=$(rfcomm | grep -o "$devassgn")
-	# We then check if the passed uid exists in the same
-	# rfcomm table to determine if it's already bound to either the
-	# assigned device path or another one.
-	uidfind=$(rfcomm | grep "$uid")
-	# matchuid is used to match the passed uid to the assigned device path
-	# but only if the latter hasn't already been assigned.
-	matchuid=$(echo "$uidfind" | grep -o "rfcomm.")
-
-	if [ -z "$devfind" ]; then
-		echo "$devassgn not previously attached"
-	else
-		if [ "$devfind" = "$matchuid" ]; then
-			rfcomm release "/dev/$devassgn"
-			exstat=$?
-			if [ "$exstat" = "0" ]; then 
-				echo "$uid unbound from $host host"
-			else
-				# Rfcomm release failed
-				error+=(11)
-			fi
+	for e in ${error[@]}; do
+		if [ "$e" = 23 ] || [ "$e" = 24 ] || [ "$e" = 9 ] || [ "$e" = 10 ]; then
+			failflag=1
 		else
-			# Rfcomm device path found ($matchuid) doesn't match the app assigned value ($devfind)
-			error+=(12)
+			failflag=0
 		fi
-	fi
+	done
+	if [ "$failflag" = 0 ]; then
+		# begin flushing process
+		echo "Starting flush on linux host"
+		echo "Starting release process:"
+		# We first determine if the passed device dev assignment
+		# exists in the rfcomm table.
+		devfind=$(rfcomm | grep -o "$devassgn")
+		# We then check if the passed uid exists in the same
+		# rfcomm table to determine if it's already bound to either the
+		# assigned device path or another one.
+		uidfind=$(rfcomm | grep "$uid")
+		# matchuid is used to match the passed uid to the assigned device path
+		# but only if the latter hasn't already been assigned.
+		matchuid=$(echo "$uidfind" | grep -o "rfcomm.")
 
-	echo "Starting unpair process:"
-	# determine macid of host bluetooth device to unpair client
-	hciuid=$(hciconfig | grep -o ..:..:..:..:..:..)
-	if [ -z "$hciuid" ]; then
-		# no host HCI interface found, critical: force script exit
-		error+=(13)
-		errorcatch
-	else
-		# pair to the passed macid variable.
-		if [ -f /var/lib/bluetooth/$hciuid/linkkeys ]; then
-			keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
-			if [ -z "$keychck" ]; then
-				error+=(14)
-			else
-				bluez-test-device remove $uid
+		if [ -z "$devfind" ]; then
+			echo "$devassgn not previously attached"
+		else
+			if [ "$devfind" = "$matchuid" ]; then
+				rfcomm release "/dev/$devassgn"
 				exstat=$?
-				# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
 				if [ "$exstat" = "0" ]; then 
-					echo "Unpairing" $uid "successful"
+					echo "$uid unbound from $host host"
 				else
-					error+=(15)
+					# Rfcomm release failed
+					error+=(11)
 				fi
+			else
+				# Rfcomm device path found ($matchuid) doesn't match the app assigned value ($devfind)
+				error+=(12)
 			fi
-			# exit 0
-			error+=(0)
 		fi
+
+		echo "Starting unpair process:"
+		# determine macid of host bluetooth device to unpair client
+		hciuid=$(hciconfig | grep -o ..:..:..:..:..:..)
+		if [ -z "$hciuid" ]; then
+			# no host HCI interface found, critical: force script exit
+			error+=(13)
+		else
+			# pair to the passed macid variable.
+			if [ -f /var/lib/bluetooth/$hciuid/linkkeys ]; then
+				keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
+				if [ -z "$keychck" ]; then
+					error+=(14)
+				else
+					bluez-test-device remove $uid
+					exstat=$?
+					# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
+					if [ "$exstat" = "0" ]; then 
+						echo "Unpairing" $uid "successful"
+					else
+						error+=(15)
+					fi
+				fi
+				# exit 0
+				error+=(0)
+			fi
+		fi
+	else
+		echo "CRITICAL: flush preconditions failed"
 	fi
 }
 
@@ -535,108 +543,119 @@ function linuxreinstall {
 
 function linuxpandb {
 	linuxhcicheck
-	echo "Pairing and Binding"
-	# begin pairing and binding process
-	# restart systemd dbus and bluetooth services as a fail safe check
-	# NOTE: restarting the dbus will break a Linux Guest OS running on a VM.
-	# Turn on only if you're sure you won't be running your fork on a VM.
-	service dbus restart
-	service bluetooth restart
-	echo "Checking connection status of" $uid "to" $host "host"
-	# bluetooth ping(ONCE) the bluetooth client to confirm it's up
-	if l2ping "$uid" -c 1; then
-		echo "Pinging" $uid "to ensure device is up"
-		# devfind conditional checks if submitted UID is already registered on rfcomm,
-		# if not it pairs to and binds the passed macid variable
-		devfind=$(rfcomm | grep $uid)
-		hciuid=$(hciconfig | grep -o ..:..:..:..:..:..)
-		if [ -z "$devfind" ]; then
-			echo "Starting pairing process:"
-			# pair to the passed macid variable.
-			if [ ! -z $hciuid ]; then
-				echo "Checking if $uid previously paired to $hciuid"
-				if [ -f /var/lib/bluetooth/$hciuid/linkkeys ]; then
-					keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
-					if [ -z "$keychck" ]; then
-						echo 1234 | bluez-simple-agent $hciuid $uid
-						exstat=$?
-						# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
-						if [ "$exstat" = "0" ]; then 
-							echo $uid "paired"
-							error+=(0)
-						else
-							# pairing to $uid failed
-							error+=(17)
-						fi
-					else
-						echo $uid "previously paired"
-					fi
-				fi
-			else
-				# no host HCI interfaces available
-				error+=(25)
-			fi
-			# rfchck conditional checks if the passed dev device has already been
-			# bound. It releases and binds the passed macid if it has.
-			rfchck=$(rfcomm | grep $devassgn)
-			if [ -z "$rfchck" ]; then
-				echo "Starting binding process:"
-				# bind the passed macid to the assigned rfcomm port on channel 1
-				rfcomm bind "/dev/"$devassgn $uid 1
-				exstat=$?
-				# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
-				if [ "$exstat" = "0" ]; then 
-					echo $uid "bound to /dev/$devassgn"
-					error+=(0)
-				else
-					# binding to $uid to /dev/$devassgn failed
-					error+=(18)
-				fi
-			else
-				prebound=$(echo $rfchck | grep -o "..:..:..:..:..:..")
-				# /dev/$devassgn already bound to $prebound
-				error+=(19)
-			fi
+	for e in ${error[@]}; do
+		if [ "$e" = 23 ] || [ "$e" = 24 ] || [ "$e" = 9 ] || [ "$e" = 10 ]; then
+			failflag=1
 		else
-			# client has already been bound to
-			# devassgnchck determines if the passed devassgn value
-			devassgnchck=$(echo $devfind | grep -o "rfcomm.")
-			if [ "$devassgnchck" = "$devassgn" ]; then
-				echo $(hcitool name $uid) "already bound to /dev/$devassgn"
-				echo "Performing pairing status validation"
+			failflag=0
+		fi
+	done
+	if [ "$failflag" = 0 ]; then
+		echo "Pairing and Binding"
+		# begin pairing and binding process
+		# restart systemd dbus and bluetooth services as a fail safe check
+		# NOTE: restarting the dbus will break a Linux Guest OS running on a VM.
+		# Turn on only if you're sure you won't be running your fork on a VM.
+		# service dbus restart
+		service bluetooth restart
+		echo "Checking connection status of" $uid "to" $host "host"
+		# bluetooth ping(ONCE) the bluetooth client to confirm it's up
+		if l2ping "$uid" -c 1; then
+			echo "Pinging" $uid "to ensure device is up"
+			# devfind conditional checks if submitted UID is already registered on rfcomm,
+			# if not it pairs to and binds the passed macid variable
+			devfind=$(rfcomm | grep $uid)
+			hciuid=$(hciconfig | grep -o ..:..:..:..:..:..)
+			if [ -z "$devfind" ]; then
+				echo "Starting pairing process:"
+				# pair to the passed macid variable.
 				if [ ! -z $hciuid ]; then
+					echo "Checking if $uid previously paired to $hciuid"
 					if [ -f /var/lib/bluetooth/$hciuid/linkkeys ]; then
 						keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
 						if [ -z "$keychck" ]; then
-							echo 1234 | bluez-simple-agent $hcinum $uid
+							echo 1234 | bluez-simple-agent $hciuid $uid
 							exstat=$?
 							# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
 							if [ "$exstat" = "0" ]; then 
-								echo "$uid paired"
+								echo $uid "paired"
 								error+=(0)
 							else
-								# bluetooth pairing to $uid failed
-								error+=(20)
+								# pairing to $uid failed
+								error+=(17)
 							fi
 						else
-							echo "$uid previously paired"
+							echo $uid "previously paired"
 						fi
 					fi
 				else
 					# no host HCI interfaces available
-					error+=(26)
+					error+=(25)
+				fi
+				# rfchck conditional checks if the passed dev device has already been
+				# bound. It releases and binds the passed macid if it has.
+				rfchck=$(rfcomm | grep $devassgn)
+				if [ -z "$rfchck" ]; then
+					echo "Starting binding process:"
+					# bind the passed macid to the assigned rfcomm port on channel 1
+					rfcomm bind "/dev/"$devassgn $uid 1
+					exstat=$?
+					# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
+					if [ "$exstat" = "0" ]; then 
+						echo $uid "bound to /dev/$devassgn"
+						error+=(0)
+					else
+						# binding to $uid to /dev/$devassgn failed
+						error+=(18)
+					fi
+				else
+					prebound=$(echo $rfchck | grep -o "..:..:..:..:..:..")
+					# /dev/$devassgn already bound to $prebound
+					error+=(19)
 				fi
 			else
-				# $uid already assigned to $devassgnchck, won't force assignment to $devassgn
-				error+=(21)
+				# client has already been bound to
+				# devassgnchck determines if the passed devassgn value
+				devassgnchck=$(echo $devfind | grep -o "rfcomm.")
+				if [ "$devassgnchck" = "$devassgn" ]; then
+					echo $(hcitool name $uid) "already bound to /dev/$devassgn"
+					echo "Performing pairing status validation"
+					if [ ! -z $hciuid ]; then
+						if [ -f /var/lib/bluetooth/$hciuid/linkkeys ]; then
+							keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
+							if [ -z "$keychck" ]; then
+								echo 1234 | bluez-simple-agent $hcinum $uid
+								exstat=$?
+								# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
+								if [ "$exstat" = "0" ]; then 
+									echo "$uid paired"
+									error+=(0)
+								else
+									# bluetooth pairing to $uid failed
+									error+=(20)
+								fi
+							else
+								echo "$uid previously paired"
+							fi
+						fi
+					else
+						# no host HCI interfaces available
+						error+=(26)
+					fi
+				else
+					# $uid already assigned to $devassgnchck, won't force assignment to $devassgn
+					error+=(21)
+				fi
 			fi
+			# Pairing and Binding process went through flawlessly
+			rfcomm
+			error+=(0)
+		else
+			# bluetooth ping failed to find passed macid.
+			error+=(22)
 		fi
-		# Pairing and Binding process went through flawlessly
-		rfcomm
-		error+=(0)
 	else
-		# bluetooth ping failed to find passed macid.
-		error+=(22)
+		echo "CRITICAL: Pair and binding preconditions failed"
 	fi
 }
 
@@ -686,7 +705,17 @@ function errorcatch {
 		if [ "$errorcount" -gt 0 ]; then
 			retcode="$errorcount"
 			echo "$errorcount errors occured"
-			if [ ! -f $homedir/data/$cuser/error.log ] && [ "$flush" = "" ]; then
+			if ([ ! -f $homedir/data/$cuser/error.log ] && [ "$flush" = "" ]) || [ "$cuser" = "admin" ]; then
+				if [ "$cuser" = "admin" ]; then
+					echo "setting up admin error logging"
+					if [ ! -d $homedir/data/$cuser ]; then
+						echo "creating admin data directory"
+						mkdir -p $homedir/data/$cuser
+					fi
+					if [ -f $homedir/data/$cuser/error.log ]; then
+						rm $homedir/data/$cuser/error.log
+					fi
+				fi
 				echo "starting non-flush error logging cycle"
 				touch $homedir/data/$cuser/error.log
 				echo -e "[{\"key\":\""$errorkey"\", \"code\": [" >> $homedir/data/$cuser/error.log
@@ -703,10 +732,9 @@ function errorcatch {
 				exit $retcode
 			elif [ -f $homedir/data/$cuser/error.log ] && [ "$flush" != "" ]; then
 				echo "starting flush error logging cycle"
-				if [ "$errorcount" -ge 1 ]; then
-					# http://www.theunixschool.com/2014/08/sed-examples-remove-delete-chars-from-line-file.html
-					sed 's/]}]$/,/g' $homedir/data/$cuser/error.log
-					while [ "$errorcount" -ge 1 ]; do
+				# http://www.theunixschool.com/2014/08/sed-examples-remove-delete-chars-from-line-file.html
+				sed 's/]}]$/,/g' $homedir/data/$cuser/error.log
+				while [ "$errorcount" -ge 1 ]; do
 					errorcount=$(($errorcount-1))
 					if [ "$errorcount" -eq 0 ]; then
 						err="${error[$errorcount]}"
@@ -716,7 +744,6 @@ function errorcatch {
 						echo -e "\""$err"\"," >> $homedir/data/$cuser/error.log
 					fi
 				done
-				fi
 				exit $retcode
 			fi
 		else

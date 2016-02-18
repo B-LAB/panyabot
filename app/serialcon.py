@@ -150,13 +150,15 @@ def leginquire():
 	global resp
 	global i
 	resp = []
+	cuser="admin"
+	errorkey=int(time.time())
 	if (host=="win"):
-		output=subprocess.call([rfpath,'-h',host,'-P'], shell=True)
+		output=subprocess.call([rfpath,'-h',host,'-P', '-e', errorkey,'-c',cuser], shell=True)
 		print '********************************************************************'
 		print output
 		print '********************************************************************'
 	else:
-		output=subprocess.call(['%s -h %s -P' %(rfpath,host)], shell=True)
+		output=subprocess.call(['%s -h %s -P -e %s -c %s' %(rfpath,host,errorkey,cuser)], shell=True)
 		print '********************************************************************'
 		print output
 		print '********************************************************************'
@@ -234,16 +236,16 @@ def sketchupl(sketchpath):
 		# Firmware specified does not exist, explicitly handled through messagereturn
 		return messagereturn(None,None,30,None)
 
-def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=None):
+def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=None,errorkey=None,cuser=None):
 	# this function takes the supplied macid passing it to the bash/shell script to
 	# pair to using the simple-bluez-agent tool and attach said macid to a 
 	# /dev/rfcomm port. If the reset flag is passed, the associated robot macid is 
 	# flushed i.e. released from rfcomm and the pairing entry deleted from 
 	# /var/lib/bluetooth/{local host macid}/linkkeys. This flushing might be overkill
 	# but it ensures that all host-robot sessions are handled robustly.
-	errorkey=int(time.time())
-	cuser=g.user.nickname
 	if flush is None:
+		errorkey=int(time.time())
+		cuser=g.user.nickname
 		if (host=="win"):
 			output=subprocess.call([rfpath,'-u',macid,'-d',rfcset,'-h',host, '-p','-e',errorkey,'-c',cuser], shell=True)
 		else:
@@ -254,7 +256,13 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 		if (output==0):
 			print 'Subprocess call complete with '+str(output)+' errors'
 			print 'Starting command upload procedure'
-			datasend(macid,alias,unick,commands,rfcset,uid)
+			# errorkey and cuser values passed to datasend to ensure bash script
+			# can match errorkeys to place errors in appropriate dictionary.
+			# feature has not been implemented fully, hostcon cannot perform
+			# the matching yet. Why I'm doing this is to have a static log of
+			# all errors users may run into with the program. Currently, the
+			# error.log file is deleted after every fullcycle run.
+			datasend(macid,alias,unick,commands,rfcset,uid,errorkey,cuser)
 		else:
 			print "Error Binding and pairing bluetooth Device"
 			print 'ERROR 1: Subprocess call complete with '+str(output)+' errors'
@@ -307,14 +315,13 @@ def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=N
 		# 	print "%s:%s" %(robot.alias,robot.status)
 		# return messagereturn(cuser,errorkey,None,None)
 
-def datasend(macid,alias,unick,commands,rfcset,uid):
+def datasend(macid,alias,unick,commands,rfcset,uid,errorkey,cuser):
 	# this is the command transport mechanism. A serial port is opened at the rfcset
 	# declared devport and commands transmitted using the pyserial library.
 	# currently in testing, default preset values are sent to the attached robot that
 	# must be running the arduino panyabot sketch.
 	# future feature to use the standard firmata library to have bidirectional
 	# transmission of data (commands and sensor values).
-	flush = "y"
 	devport = "/dev/"
 	devport+=str(rfcset)
 	print devport
@@ -333,7 +340,7 @@ def datasend(macid,alias,unick,commands,rfcset,uid):
 	for i in range(0,len(commands)):
 		print commands[i]
 	# after downstream data transmission is completed, the attached robot is flushed.
-	rfcommbind(rfcset,macid,None,None,None,uid,flush)
+	rfcommbind(rfcset,macid,None,None,None,uid,"flush",errorkey,cuser)
 	flush = ""
 
 def rfcommset(robots):
