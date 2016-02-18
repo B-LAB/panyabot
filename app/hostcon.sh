@@ -393,6 +393,7 @@ function linuxhciprimer {
 		exstat=$?
 		if [ "$exstat" = "0" ]; then 
 			echo "hci$posspathnum reset on host"
+			echo "$(hciconfig)"
 			hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
 			hcitllist=($(echo "${hcitlvar#$'\n'}"))
 			hcitltotal=$((${#hcitllist[@]}/2))
@@ -539,7 +540,7 @@ function linuxpandb {
 	# restart systemd dbus and bluetooth services as a fail safe check
 	# NOTE: restarting the dbus will break a Linux Guest OS running on a VM.
 	# Turn on only if you're sure you won't be running your fork on a VM.
-	# service dbus restart
+	service dbus restart
 	service bluetooth restart
 	echo "Checking connection status of" $uid "to" $host "host"
 	# bluetooth ping(ONCE) the bluetooth client to confirm it's up
