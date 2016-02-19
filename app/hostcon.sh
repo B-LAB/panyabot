@@ -182,7 +182,7 @@ function linuxhciallup {
 							# global error variable used to determine internal
 							# states of bash functions. It is looped over when
 							# the bash subprocess call is complete.
-							error+=(0)
+							
 						else
 							# hciconfig reset failed
 							error+=(1)
@@ -203,7 +203,7 @@ function linuxhciallup {
 				# global error variable used to determine internal
 				# states of bash functions. It is looped over when
 				# the bash subprocess call is complete.
-				error+=(0)
+				
 			else
 				# hciconfig reset failed
 				error+=(2)
@@ -272,7 +272,7 @@ function linuxhciswitch {
 							hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
 							hcitllist=($(echo "${hcitlvar#$'\n'}"))
 							hcitltotal=$((${#hcitllist[@]}/2))
-							error+=(0)
+							
 						else
 							# HCI switch failed
 							error+=(4)
@@ -298,7 +298,7 @@ function linuxhciswitch {
 							hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
 							hcitllist=($(echo "${hcitlvar#$'\n'}"))
 							hcitltotal=$((${#hcitllist[@]}/2))
-							error+=(0)
+							
 						else
 							# HCI switch failed
 							error+=(5)
@@ -315,7 +315,7 @@ function linuxhciswitch {
 							hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
 							hcitllist=($(echo "${hcitlvar#$'\n'}"))
 							hcitltotal=$((${#hcitllist[@]}/2))
-							error+=(0)
+							
 						else
 							# HCI switch failed
 							error+=(6)
@@ -361,7 +361,7 @@ function linuxhciprimer {
 				hcitldev=$(echo "${hcitllist[$i]}")
 				hcitluid=$(echo "${hcitllist[$(($i+1))]}")
 				echo "$hcitldev=$hcitluid"
-				error+=(0)
+				
 			fi
 		done
 	elif [ "$tl" -eq 0 ] && [ "$cn" -eq 0 ]; then
@@ -379,7 +379,7 @@ function linuxhciprimer {
 					hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
 					hcitllist=($(echo "${hcitlvar#$'\n'}"))
 					hcitltotal=$((${#hcitllist[@]}/2))
-					error+=(0)
+					
 				else
 					# HCI interface pull down failed
 					error+=(9)
@@ -396,7 +396,7 @@ function linuxhciprimer {
 			hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
 			hcitllist=($(echo "${hcitlvar#$'\n'}"))
 			hcitltotal=$((${#hcitllist[@]}/2))
-			error+=(0)
+			
 		else
 			# HCI interface pull up failed
 			# This can occur if a bluetooth manager runnning on host
@@ -499,7 +499,7 @@ function linuxflush {
 					fi
 				fi
 				# exit 0
-				error+=(0)
+				
 			fi
 		fi
 	else
@@ -533,7 +533,7 @@ function linuxreinstall {
 				# $? is a shell status code that returns the previous commands exit code
 				if [ "$exstat" = "0" ]; then 
 					# firmware upload was successful
-					error+=(0)
+					
 				else
 					# firmware upload was unsuccessful
 					error+=(16)
@@ -595,7 +595,7 @@ function linuxpandb {
 							# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
 							if [ "$exstat" = "0" ]; then 
 								echo $uid "paired"
-								error+=(0)
+								
 							else
 								# pairing to $uid failed
 								error+=(17)
@@ -619,7 +619,7 @@ function linuxpandb {
 					# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
 					if [ "$exstat" = "0" ]; then 
 						echo $uid "bound to /dev/$devassgn"
-						error+=(0)
+						
 					else
 						# binding to $uid to /dev/$devassgn failed
 						error+=(18)
@@ -645,7 +645,7 @@ function linuxpandb {
 								# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
 								if [ "$exstat" = "0" ]; then 
 									echo "$uid paired"
-									error+=(0)
+									
 								else
 									# bluetooth pairing to $uid failed
 									error+=(20)
@@ -665,7 +665,7 @@ function linuxpandb {
 			fi
 			# Pairing and Binding process went through flawlessly
 			rfcomm
-			error+=(0)
+			
 		else
 			# bluetooth ping failed to find passed macid.
 			error+=(22)
@@ -680,7 +680,6 @@ function errorcatch {
 	if [ "$host" = "linux" ]; then
 		for e in ${error[@]}; do
 			case $e in
-				"0" ) echo "operation successful";;
 				"1" ) echo "error 1: error while resetting ${hci[$n]}";;
 				"2" ) echo "error 2: error while resetting ${hci[$n]}";;
 				"3" ) echo "error 3: no host HCI interfaces available";;
