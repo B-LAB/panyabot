@@ -428,13 +428,21 @@ function linuxhcicheck {
 
 function linuxflush {
 	linuxhcicheck
-	for e in ${error[@]}; do
-		if [ "$e" = 23 ] || [ "$e" = 24 ] || [ "$e" = 9 ] || [ "$e" = 10 ]; then
-			failflag=1
-		else
-			failflag=0
-		fi
-	done
+	echo "Number of HCI setup errors = ${#error[@]}"
+	if [ "${#error[@]}" -gt 0 ]; then
+		for e in ${error[@]}; do
+			echo "assessing error code ${error[@]}"
+			if [ "$e" = 23 ] || [ "$e" = 24 ] || [ "$e" = 9 ] || [ "$e" = 10 ]; then
+				echo "failflag set to 1"
+				failflag=1
+			else
+				echo "failflag set to 0"
+				failflag=0
+			fi
+		done
+	else
+		failflag=0
+	fi
 	if [ "$failflag" = 0 ]; then
 		# begin flushing process
 		echo "Starting flush on linux host"
@@ -543,13 +551,21 @@ function linuxreinstall {
 
 function linuxpandb {
 	linuxhcicheck
-	for e in ${error[@]}; do
-		if [ "$e" = 23 ] || [ "$e" = 24 ] || [ "$e" = 9 ] || [ "$e" = 10 ]; then
-			failflag=1
-		else
-			failflag=0
-		fi
-	done
+	echo "Number of HCI setup errors = ${#error[@]}"
+	if [ "${#error[@]}" -gt 0 ]; then
+		for e in ${error[@]}; do
+			echo "assessing error code ${error[@]}"
+			if [ "$e" = 23 ] || [ "$e" = 24 ] || [ "$e" = 9 ] || [ "$e" = 10 ]; then
+				echo "failflag set to 1"
+				failflag=1
+			else
+				echo "failflag set to 0"
+				failflag=0
+			fi
+		done
+	else
+		failflag=0
+	fi
 	if [ "$failflag" = 0 ]; then
 		echo "Pairing and Binding"
 		# begin pairing and binding process
@@ -698,7 +714,7 @@ function errorcatch {
 			if [ "$e" != 0 ]; then
 				errorcount=$(($errorcount+1))
 			else
-				errorcount=$(($errorcount+0))
+				errorcount="$errorcount"
 			fi
 		done
 		homedir=$(dirname $(pwd))
