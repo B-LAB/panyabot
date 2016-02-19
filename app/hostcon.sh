@@ -182,7 +182,6 @@ function linuxhciallup {
 							# global error variable used to determine internal
 							# states of bash functions. It is looped over when
 							# the bash subprocess call is complete.
-							
 						else
 							# hciconfig reset failed
 							error+=(1)
@@ -203,7 +202,6 @@ function linuxhciallup {
 				# global error variable used to determine internal
 				# states of bash functions. It is looped over when
 				# the bash subprocess call is complete.
-				
 			else
 				# hciconfig reset failed
 				error+=(2)
@@ -272,7 +270,6 @@ function linuxhciswitch {
 							hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
 							hcitllist=($(echo "${hcitlvar#$'\n'}"))
 							hcitltotal=$((${#hcitllist[@]}/2))
-							
 						else
 							# HCI switch failed
 							error+=(4)
@@ -298,7 +295,6 @@ function linuxhciswitch {
 							hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
 							hcitllist=($(echo "${hcitlvar#$'\n'}"))
 							hcitltotal=$((${#hcitllist[@]}/2))
-							
 						else
 							# HCI switch failed
 							error+=(5)
@@ -315,7 +311,6 @@ function linuxhciswitch {
 							hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
 							hcitllist=($(echo "${hcitlvar#$'\n'}"))
 							hcitltotal=$((${#hcitllist[@]}/2))
-							
 						else
 							# HCI switch failed
 							error+=(6)
@@ -361,7 +356,6 @@ function linuxhciprimer {
 				hcitldev=$(echo "${hcitllist[$i]}")
 				hcitluid=$(echo "${hcitllist[$(($i+1))]}")
 				echo "$hcitldev=$hcitluid"
-				
 			fi
 		done
 	elif [ "$tl" -eq 0 ] && [ "$cn" -eq 0 ]; then
@@ -379,7 +373,6 @@ function linuxhciprimer {
 					hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
 					hcitllist=($(echo "${hcitlvar#$'\n'}"))
 					hcitltotal=$((${#hcitllist[@]}/2))
-					
 				else
 					# HCI interface pull down failed
 					error+=(9)
@@ -396,7 +389,6 @@ function linuxhciprimer {
 			hcitlvar=$(hcitool dev | while read line; do echo "${line#Devices:}"; done)
 			hcitllist=($(echo "${hcitlvar#$'\n'}"))
 			hcitltotal=$((${#hcitllist[@]}/2))
-			
 		else
 			# HCI interface pull up failed
 			# This can occur if a bluetooth manager runnning on host
@@ -487,6 +479,7 @@ function linuxflush {
 			if [ -f /var/lib/bluetooth/$hciuid/linkkeys ]; then
 				keychck=$(cat /var/lib/bluetooth/$hciuid/linkkeys | grep -o $uid)
 				if [ -z "$keychck" ]; then
+					# HCI device lacks linkkey file
 					error+=(14)
 				else
 					bluez-test-device remove $uid
@@ -495,11 +488,10 @@ function linuxflush {
 					if [ "$exstat" = "0" ]; then 
 						echo "Unpairing" $uid "successful"
 					else
+						# unpairing was successful
 						error+=(15)
 					fi
 				fi
-				# exit 0
-				
 			fi
 		fi
 	else
@@ -533,9 +525,10 @@ function linuxreinstall {
 				# $? is a shell status code that returns the previous commands exit code
 				if [ "$exstat" = "0" ]; then 
 					# firmware upload was successful
-					
+					echo "firmware was successfully uploaded"
 				else
 					# firmware upload was unsuccessful
+					echo "firmware upload was unsuccessful"
 					error+=(16)
 				fi
 			else
@@ -595,7 +588,6 @@ function linuxpandb {
 							# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
 							if [ "$exstat" = "0" ]; then 
 								echo $uid "paired"
-								
 							else
 								# pairing to $uid failed
 								error+=(17)
@@ -619,7 +611,6 @@ function linuxpandb {
 					# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
 					if [ "$exstat" = "0" ]; then 
 						echo $uid "bound to /dev/$devassgn"
-						
 					else
 						# binding to $uid to /dev/$devassgn failed
 						error+=(18)
@@ -645,7 +636,6 @@ function linuxpandb {
 								# http://stackoverflow.com/questions/748445/shell-status-codes-in-make
 								if [ "$exstat" = "0" ]; then 
 									echo "$uid paired"
-									
 								else
 									# bluetooth pairing to $uid failed
 									error+=(20)
@@ -665,7 +655,6 @@ function linuxpandb {
 			fi
 			# Pairing and Binding process went through flawlessly
 			rfcomm
-			
 		else
 			# bluetooth ping failed to find passed macid.
 			error+=(22)
