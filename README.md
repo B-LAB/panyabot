@@ -3,7 +3,7 @@ This is PanyaBot's Flask-based Programming Platform and has been a labour of lov
 This repo is home to the software that underpins all the functioning of our friendly robot, PanyaBot. The programming
  platform will allow for users to control PanyaBot through a block-based programming language as well as allowing for 
  general gameplay. Current plans include making sure that the Platform is fully developed to be as close to final/market
- ready. To run the instance, you only have to close this repository to your Raspberry Pi, Intel Edison or any Unix-based
+ ready. To run the instance, clone this repository to your Raspberry Pi, Intel Edison or any Unix-based
  OS (Untested) and execute run.py. This will check if all required dependancies are available and install them if not. You
  You will then be prompted to point your browser to a self-hosted URL where you will find the Programming Platform running.
  Sign up for a local account and you're ready to go!
