@@ -1,9 +1,10 @@
 from flask import render_template, url_for, request, g, flash, redirect, jsonify
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from app import app, db, login_manager, bcrypt
-from .blueteeth import leginquire, parseblocks
+from .serialcon import leginquire, parseblocks, sketchupl
 from .forms import LoginForm, RegistrationForm
 from .models import User, Robot
+import os
 
 @app.before_request
 def before_request():
@@ -23,14 +24,20 @@ def user_loader(user_id):
 	return User.query.get(int(user_id))
 
 @app.route('/bluetooth', methods=['POST','GET'])
-def blue():
+def bluetooth():
 	if request.method == 'POST':
-		parseblocks(request.json['panya'])
-		return jsonify({'status':'OK'})
+		response=parseblocks(request.json['panya'])
+		return jsonify({'status': response})
 	if request.method == 'GET':
 		return jsonify({
 		'devices': leginquire()
 		})
+
+@app.route('/reinstall')
+def reset():
+	if request.method == 'GET':
+		response=sketchupl('../data/sketches/Blink/')
+		return jsonify({'status': response})
 
 @app.route('/register', methods=['GET','POST'])
 def register():
@@ -62,6 +69,15 @@ def login():
 				db.session.commit()
 				login_user(user, remember=form.remember_me.data)
 				flash('Welcome %s' % (g.user.nickname))
+				# create users data directory if it doesn't exist
+				datadir = app.config['DATA']
+				usersavedir = os.path.join(datadir,g.user.nickname)
+				print 'Verifying save directory'
+				if not os.path.exists(usersavedir):
+					print 'Creating '+str(g.user.nickname)+'\'s save directory'
+					os.mkdir(usersavedir)
+				else:
+					print str(g.user.nickname)+'\'s directory exists'
 				return redirect(request.args.get('next') or url_for('home'))
 			else:
 				flash('Invalid login. Please try again')	
@@ -87,10 +103,12 @@ def logout():
 @login_required
 def home():
 	user = g.user
-	return render_template('home.html', title='Home', user=user)
+	robot = Robot.query.filter_by(user_id=user.id).first()
+	return render_template('home.html', title='Home', user=user, robot=robot)
 
 @app.route('/blockly')
 @login_required
 def blockly():
 	user = g.user
-	return render_template('blockly.html', title='Blockly', user=user)
+	robot = Robot.query.filter_by(user_id=user.id).first()
+	return render_template('blockly.html', title='Blockly', user=user, robot=robot)

@@ -5,6 +5,7 @@
 # Keep out sensitive data and development test files
 flask/
 instance/config.py
+sketches/*/build-uno
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

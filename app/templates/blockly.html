@@ -93,6 +93,7 @@
       alert(code);
     }
     function uploadCode() {
+      var error_list = [];
       $("#upicon").hide();
       $("#loading").show();
       var code = Blockly.Python.workspaceToCode(workspace);
@@ -102,13 +103,24 @@
         data: JSON.stringify({panya:code}),
         contentType: 'application/json;charset=UTF-8',
         dataType:'json',
-        success: function() {
+        success: function(data) {
           $("#upicon").show();
           $("#loading").hide();
-          alert('Done!')
+          var passdata = JSON.parse(data.status);
+          console.log(passdata);
+          datareturned=jQuery.isEmptyObject(passdata);
+          if (datareturned === true){
+            alert("Done!")
+          } else {
+            $.each(passdata.info, function(index, element) {
+              var err = element;
+              error_list = error_list.concat("\n"+err);
+            });
+            alert("ERROR:"+error_list);
+          }
         },
         error: function(){
-          alert("Error");
+          alert("Fatal Error");
         }
       });
     }
