@@ -63,7 +63,7 @@ def messagereturn(cuser,errorkey,stricterror=None,fullcycle=None):
 					{ "error":19, "info":"Device binding error"},{"error":20, "info":"Bluetooth pairing error"},{ "error":21, "info":"Device binding failed"},
 					{ "error":22, "info":"Device not found"},{ "error":23, "info":"No HCI interfaces up"},{ "error":24, "info":"No HCI available"},{ "error":25, "info": "No HCI available"},
 					{ "error":26, "info":"No HCI available"},{ "error":27, "info":"No USB devices found"},{ "error":28, "info":"No Arduinos found"},{ "error":29, "info":"No HCI available"},
-					{ "error":30, "info":"Firmware does not exist"}, { "error":31, "info":"Unexpected error"},{ "error":32, "info":"Fatal error"},{ "error":33, "info":"No HCI available"}
+					{"error":30, "info":"Bluetooth setup error"},{ "error":31, "info":"Firmware does not exist"}, { "error":32, "info":"Unexpected error"},{ "error":33, "info":"Fatal error"},{ "error":34, "info":"No HCI available"}
 					]
 	if (stricterror==None) and (fullcycle==None):
 		print 'starting halfcycle error logging'
@@ -79,13 +79,13 @@ def messagereturn(cuser,errorkey,stricterror=None,fullcycle=None):
 					if (int(error["key"]) == int(errorkey)):
 						print 'copying error instance: '+str(error)
 						for code in error["code"]:
-							if (int(code)>0) and (int(code)<=29):
+							if (int(code)>0) and (int(code)<=30):
 								for refcode in errordict:
 									if (int(code)==int(refcode["error"])):
 										messresp["info"].append(refcode["info"])
 							else:
 								for err in errordict:
-									if (err["error"]==32):
+									if (err["error"]==33):
 										print 'error '+str(err["error"])+":"+str(err["info"])
 										messresp["info"].append(err["info"])
 										return json.dumps(messresp)
@@ -106,13 +106,13 @@ def messagereturn(cuser,errorkey,stricterror=None,fullcycle=None):
 					if (int(error["key"]) == int(errorkey)):
 						print 'copying error instance: '+str(error)
 						for code in error["code"]:
-							if (int(code)>0) and (int(code)<=29):
+							if (int(code)>0) and (int(code)<=30):
 								for refcode in errordict:
 									if (int(code)==int(refcode["error"])):
 										messresp["info"].append(refcode["info"])
 							else:
 								for err in errordict:
-									if (err["error"]==32):
+									if (err["error"]==33):
 										print 'error '+str(err["error"])+":"+str(err["info"])
 										messresp["info"].append(err["info"])
 										print 'deleting error log file'
@@ -139,7 +139,7 @@ def messagereturn(cuser,errorkey,stricterror=None,fullcycle=None):
 				return json.dumps(messresp)
 		if not errfound:
 			for err in errordict:
-				if (err["error"]==31):
+				if (err["error"]==32):
 					print 'error '+str(err["error"])+":"+str(err["info"])
 					messresp["info"].append(err["info"])
 					return json.dumps(messresp)
@@ -183,7 +183,7 @@ def leginquire():
 	else:
 		print "Error performing bluetooth search"
 		print 'ERROR 5: Subprocess call complete with '+str(output)+' errors'
-		return messagereturn(None,None,33,None)
+		return messagereturn(None,None,34,None)
 
 def sdpbrowse(macid=None):
 	# this function determines the available service profiles at the specified bluetooth macid.
@@ -234,7 +234,7 @@ def sketchupl(sketchpath):
 			return messagereturn(cuser,errorkey,None,"fullcycle")
 	else:
 		# Firmware specified does not exist, explicitly handled through messagereturn
-		return messagereturn(None,None,30,None)
+		return messagereturn(None,None,31,None)
 
 def rfcommbind(rfcset,macid,alias=None,unick=None,commands=None,uid=None,flush=None,errorkey=None,cuser=None):
 	# this function takes the supplied macid passing it to the bash/shell script to
